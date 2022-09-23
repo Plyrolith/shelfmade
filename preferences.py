@@ -83,7 +83,7 @@ class Preferences(AddonPreferences):
             return
 
         # Iterate directory and find python scripts
-        for script_file in directory.iterdir():
+        for script_file in sorted(directory.iterdir()):
             if not script_file.suffix == ".py":
                 continue
 
