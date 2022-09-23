@@ -18,7 +18,7 @@ from . import catalogue, preferences, utils
 
 
 @catalogue.bpy_register
-class EditScript(Operator):
+class SHELFMADE_OT_EditScript(Operator):
     """Edit this Python script file in the text editor"""
 
     bl_idname = "wm.shelfmade_edit_script"
@@ -58,7 +58,7 @@ class EditScript(Operator):
 
 
 @catalogue.bpy_register
-class ReloadScripts(Operator):
+class SHELFMADE_OT_ReloadScripts(Operator):
     """Re-scan the scripts directory and build script list"""
 
     bl_idname = "wm.shelfmade_reload_scripts"
@@ -77,7 +77,7 @@ class ReloadScripts(Operator):
 
 
 @catalogue.bpy_register
-class RunScript(Operator):
+class SHELFMADE_OT_RunScript(Operator):
     """Execute this Python script file"""
 
     bl_idname = "wm.shelfmade_run_script"
@@ -105,7 +105,7 @@ class RunScript(Operator):
 
 
 @catalogue.bpy_register
-class RunText(Operator):
+class SHELFMADE_OT_RunText(Operator):
     """Execute this local text datablock"""
 
     bl_idname = "wm.shelfmade_run_text"
