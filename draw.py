@@ -97,6 +97,13 @@ def settings(panel: Panel, context: Context):
     # Directory path
     row_directory.prop(data=prefs, property="script_directory", icon_only=True)
 
+    # Open directory button
+    row_open = row_directory.row()
+    row_open.enabled = bool(prefs.script_directory)
+    row_open.operator(
+        operator="wm.path_open", text="", icon="FOLDER_REDIRECT"
+    ).filepath = prefs.script_directory
+
     # Show edit buttons
     row_edit = col_settings.box().row()
     row_edit.alignment = "CENTER"
