@@ -336,7 +336,7 @@ class SHELFMADE_OT_OpenScript(Operator, io_utils.ImportHelper):
     bl_label = "Open Script"
     bl_options = {"UNDO"}
 
-    filepath: StringProperty(name="File Path")
+    filepath: StringProperty(name="File Path", subtype="FILE_PATH")
 
     def invoke(self, context: Context, event: Event):
         context.window_manager.fileselect_add(self)
@@ -560,7 +560,7 @@ class SHELFMADE_OT_RunScript(Operator, io_utils.ImportHelper):
     bl_label = "Run Script"
     bl_options = {"UNDO"}
 
-    filepath: StringProperty(name="File Path")
+    filepath: StringProperty(name="File Path", subtype="FILE_PATH")
 
     def invoke(self, context: Context, event: Event):
         context.window_manager.fileselect_add(self)
