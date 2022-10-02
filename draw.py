@@ -2,19 +2,82 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from bpy.types import Context, Panel
-
+    from typing import Literal, Optional
+    from bpy.types import Context, ID, Panel, UILayout
+    from .shelf import Script, Shelf
 
 import bpy
 import re
 from . import preferences
+
+
+########################################################################################
+# Editors
+########################################################################################
+
+
+#  area.ui_type
+AREA_TYPES = {
+    "VIEW_3D": "VIEW3D",
+    "IMAGE_EDITOR": "IMAGE",
+    "UV": "UV",
+    "CompositorNodeTree": "NODE_COMPOSITING",
+    "TextureNodeTree": "NODE_TEXTURE",
+    "GeometryNodeTree": "GEOMETRY_NODES",
+    "ShaderNodeTree": "NODE_MATERIAL",
+    "SEQUENCE_EDITOR": "SEQUENCE",
+    "CLIP_EDITOR": "TRACKER",
+    "DOPESHEET": "ACTION",
+    "TIMELINE": "TIME",
+    "FCURVES": "GRAPH",
+    "DRIVERS": "DRIVER",
+    "NLA_EDITOR": "NLA",
+    "TEXT_EDITOR": "TEXT",
+    # "CONSOLE": "CONSOLE",
+    # "INFO": "INFO",
+    # "OUTLINER": "OUTLINER",
+    # "PROPERTIES": "PROPERTIES",
+    # "FILES": "FILEBROWSER",
+    # "ASSETS": "ASSET_MANAGER",
+    "SPREADSHEET": "SPREADSHEET",
+    # "PREFERENCES": "PREFERENCES",
+}
+
 
 ########################################################################################
 # Draw functions
 ########################################################################################
 
 
-def directory_scripts(panel: Panel, context: Context):
+def shelf_visibility(panel: Panel, context: Context, index: int):
+    if TYPE_CHECKING:
+        shelf: shelf.Shelf
+
+    shelf = preferences.Preferences.this().shelves[index]
+    layout = panel.layout
+
+    # Size and columns
+    box_size = layout.box()
+    box_size.prop(data=shelf, property="height", slider=True)
+    box_size.prop(data=shelf, property="columns")
+    row_align = box_size.row()
+    row_align.alignment = "CENTER"
+    row_align.prop(data=shelf, property="align")
+
+    # Area type toggles
+    col_areas = layout.column()
+    for area_type, icon in AREA_TYPES.items():
+        # Area type row
+        row_area = col_areas.row()
+        row_area.alignment = "LEFT"
+
+        # Area type toggle
+        property = f"enabled_{area_type.lower()}"
+        row_area.prop(data=shelf, property=property, text="")
+        row_area.prop(data=shelf, property=property, icon=icon, emboss=False)
+
+
+def shelf_scripts(panel: Panel, context: Context):
     """
     Draw all scripts generated from the scripts directory.
 
@@ -22,28 +85,88 @@ def directory_scripts(panel: Panel, context: Context):
         - panel (Panel)
         - context (Context)
     """
+    if TYPE_CHECKING:
+        script: Script
+        shelf: Shelf
+        row_script: UILayout
+
     layout = panel.layout
+    prefs = preferences.Preferences.this()
+    shelves = prefs.shelves
+    if not shelves:
+        layout.operator(operator="shelfmade.add_shelf", icon="ADD")
+        return
 
-    # Get preferences
-    prefs = preferences.Preferences.this
+    # Draw each shelf
+    for sh_i, shelf in enumerate(shelves):
+        if not shelf.is_visible(context=context):
+            continue
 
-    # Draw script buttons
-    for i, script in enumerate(prefs.scripts):
-        row_script = layout.row(align=True)
+        box_shelf = layout.box()
+        row_title = box_shelf.row()
 
-        # Run script operator
-        row_script.operator(
-            operator="wm.shelfmade_run_script",
-            text=script.name,
-        ).index = i
+        # Shelf title & expander
+        if show_layout(
+            layout=row_title,
+            data=shelf,
+            property="show_scripts",
+            text=shelf.name,
+            alignment="LEFT",
+            icon="" if shelf.icon == "NONE" else shelf.icon,
+        ):
+            # Don't draw if scripts are empty
+            scripts = [s for s in shelf.scripts if s.is_available]
+            if scripts:
 
-        # Edit button
-        if prefs.show_edit_buttons:
-            row_script.operator(
-                operator="wm.shelfmade_edit_script",
+                # Generate column flow
+                flow_shelf = box_shelf.column_flow(
+                    columns=shelf.columns,
+                    align=shelf.align,
+                )
+                columns = []
+                for _ in range(0, shelf.columns):
+                    columns.append(flow_shelf.column(align=shelf.align))
+
+                # Draw script buttons
+                for sc_i, script in enumerate(scripts):
+                    # Assign to column & set height
+                    row_script = columns[sc_i % shelf.columns].row(align=True)
+                    row_script.scale_y = shelf.height
+
+                    # Run script operator
+                    row_script.operator_context = "EXEC_DEFAULT"
+                    row_script.operator(
+                        operator="wm.run_script",
+                        text=script.display_name,
+                        icon=script.icon,
+                    ).filepath = str(shelf.script_path(script=script.name))
+
+                    # Menu button
+                    if not prefs.is_locked:
+                        op_script = row_script.operator_menu_enum(
+                            operator="shelfmade.call_script_menu",
+                            property="mode",
+                            text="",
+                            icon="DOWNARROW_HLT",
+                        )
+                        op_script.index = sh_i
+                        op_script.script = script.name
+
+            else:
+                row_noscripts = box_shelf.row()
+                row_noscripts.alignment = "CENTER"
+                row_noscripts.label(text="No Scripts Found", icon="GHOST_DISABLED")
+
+        # Shelf menu
+        if not prefs.is_locked:
+            row_menu = row_title.row()
+            row_menu.alignment = "RIGHT"
+            row_menu.operator_menu_enum(
+                operator="shelfmade.call_shelf_menu",
+                property="mode",
                 text="",
-                icon="GREASEPENCIL",
-            ).index = i
+                icon="COLLAPSEMENU",
+            ).index = sh_i
 
 
 def local_scripts(panel: Panel, context: Context):
@@ -57,7 +180,7 @@ def local_scripts(panel: Panel, context: Context):
     layout = panel.layout
 
     # Draw script buttons
-    for i, text in enumerate(bpy.data.texts):
+    for text in bpy.data.texts:
 
         # Generate name without .py
         name = text.name
@@ -67,44 +190,64 @@ def local_scripts(panel: Panel, context: Context):
 
         # Draw operator
         layout.row().operator(
-            operator="wm.shelfmade_run_text",
+            operator="wm.run_text",
             text=text.name,
-        ).index = i
+        ).name = text.name
 
 
-def settings(panel: Panel, context: Context):
+def show_layout(
+    layout: UILayout,
+    data: ID,
+    property: str,
+    text: Optional[str] = None,
+    alignment: Literal["LEFT", "CENTER", "RIGHT"] = "LEFT",
+    icon: str = "",
+) -> bool:
     """
-    Draw the directory settings.
+    Draw a foldout control in the current UI.
 
     Parameters:
-        - panel (Panel)
-        - context (Context)
+        - layout (UILayout): Layout to draw at
+        - data (ID): Host datablock of the bool property that holds the
+          collapse status
+        - property (str): Name of bool property that holds the collapse status
+        - text (str, optional): Alternative text for label
+        - alignment (str):
+            - LEFT
+            - CENTER
+            - RIGHT
+        - icon (str): Draw an additional icon
+
+    Returns:
+        - bool: Whether the foldout should be drawn or not
     """
-    layout = panel.layout
-    col_settings = layout.column(align=True)
-    row_directory = col_settings.row(align=True)
+    enabled = bool(getattr(data, property))
 
-    # Get preferences
-    prefs = preferences.Preferences.this
+    row_main = layout.row(align=True)
 
-    # Reload button
-    row_directory.operator(
-        operator="wm.shelfmade_reload_scripts",
-        text="",
-        icon="FILE_REFRESH",
+    # Button, add text if left
+    row_button = row_main.row(align=True)
+    row_button.alignment = "LEFT"
+    row_button.prop(
+        data=data,
+        property=property,
+        text=text if alignment == "LEFT" and not icon else "",
+        icon_only=False if alignment == "LEFT" or icon else True,
+        icon="DOWNARROW_HLT" if enabled else "RIGHTARROW",
+        emboss=False,
     )
 
-    # Directory path
-    row_directory.prop(data=prefs, property="script_directory", icon_only=True)
+    # Text in separate property if not left aligned, to be able to separate from button
+    if alignment != "LEFT" or icon:
+        row_text = row_main.row(align=True)
+        row_text.alignment = alignment
+        row_text.prop(
+            data=data,
+            property=property,
+            text=text,
+            icon=icon or "NONE",
+            toggle=True,
+            emboss=False,
+        )
 
-    # Open directory button
-    row_open = row_directory.row()
-    row_open.enabled = bool(prefs.script_directory)
-    row_open.operator(
-        operator="wm.path_open", text="", icon="FOLDER_REDIRECT"
-    ).filepath = prefs.script_directory
-
-    # Show edit buttons
-    row_edit = col_settings.box().row()
-    row_edit.alignment = "CENTER"
-    row_edit.prop(data=prefs, property="show_edit_buttons")
+    return enabled

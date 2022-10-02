@@ -126,38 +126,3 @@ def split_area(
         if area not in start_areas:
             area.type = type.upper()
             return area
-
-
-def ui_redraw(
-    context: Context = None,
-    include: Union[set, tuple, list] = [],
-    exclude: Union[set, tuple, list] = [],
-):
-    """
-    Forces blender to redraw its UI.
-
-    Parameters:
-        - context (Context, optional): If not given screens are taken from bpy.data
-        - include (set|tuple|list): List of area type strings to include
-        - exclude (set|tuple|list): List of area type strings to exclude
-    """
-    if context:
-        wm = context.window_manager
-
-    elif not hasattr(bpy.data, "window_managers"):
-        return
-
-    else:
-        wm = bpy.data.window_managers[0]
-
-    # if not context:
-    #     context = bpy.context
-    # context.window_manager.update_tag()
-
-    for screen in [w.screen for w in wm.windows]:
-        for area in screen.areas:
-            if include and area.type not in include:
-                continue
-            elif exclude and area.type in exclude:
-                continue
-            area.tag_redraw()

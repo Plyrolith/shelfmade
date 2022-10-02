@@ -1,31 +1,15 @@
 from __future__ import annotations
+from ast import operator
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from bpy.types import Context
+    from bpy.types import Context, UILayout
 
-from pathlib import Path
-
-from bpy.props import BoolProperty, CollectionProperty, StringProperty
+import bpy
+from bpy.props import BoolProperty, CollectionProperty
 from bpy.types import AddonPreferences
 
-from . import catalogue, script
-
-
-########################################################################################
-# Update functions
-########################################################################################
-
-
-def update_script_directory(preferences: Preferences, context: Context):
-    """
-    Re-scans scripts on directory change.
-
-    Parameters:
-        - preferences (Preferences)
-        - context (Context)
-    """
-    preferences.initialize_scripts()
+from . import catalogue, shelf
 
 
 ########################################################################################
@@ -39,15 +23,24 @@ class Preferences(AddonPreferences):
 
     bl_idname = __package__
 
-    script_directory: StringProperty(
-        name="Script Directory",
-        subtype="DIR_PATH",
-        update=update_script_directory,
-    )
-    scripts: CollectionProperty(type=script.Script, name="Scripts")
-    show_edit_buttons: BoolProperty(name="Show Edit Buttons")
+    is_locked: BoolProperty(name="(Un)Lock Shelves", update=shelf.update_save_userpref)
+    shelves: CollectionProperty(type=shelf.Shelf, name="Directories")
 
-    this: Preferences
+    def clean(self):
+        """
+        Remove all unavailable shelves and scripts.
+        """
+        if TYPE_CHECKING:
+            script: shelf.Script
+            shelf: shelf.Shelf
+
+        for i_sh, shelf in reversed(list(enumerate(self.shelves))):
+            if not shelf.is_available:
+                self.shelves.remove(i_sh)
+
+            for i_sc, script in reversed(list(enumerate(shelf.scripts))):
+                if not script.is_available:
+                    shelf.scripts.remove(i_sc)
 
     def draw(self, context: Context):
         """
@@ -56,38 +49,96 @@ class Preferences(AddonPreferences):
         Parameters:
             - context (Context)
         """
+        if TYPE_CHECKING:
+            layout: UILayout
+            shelf: shelf.Shelf
+
+        # Add shelf button
         layout = self.layout
-        layout.use_property_split = True
+        col_shelves = layout.column(align=True)
+        col_shelves.row(align=True).operator(
+            operator="shelfmade.add_shelf",
+            icon="ADD",
+        )
 
-        # Script directory
-        layout.prop(data=self, property="script_directory")
-
-        # Show edit buttons
-        layout.prop(data=self, property="show_edit_buttons")
-
-    def initialize_scripts(self):
-        """
-        Scan the script directory and initiate a script object for each script found.
-        """
-        # Clear scripts
-        self.scripts.clear()
-
-        # Check directory
-        if not self.script_directory:
-            print("Please define a script directory")
+        if not self.shelves:
             return
 
-        directory = Path(self.script_directory)
-        if not directory.is_dir():
-            print("Invalid script directory")
-            return
+        # Draw all shelves
+        box_shelves = col_shelves.box()
+        box_shelves.separator()
+        for i, shelf in enumerate(self.shelves):
+            row_shelf = box_shelves.row()
 
-        # Iterate directory and find python scripts
-        for script_file in sorted(directory.iterdir()):
-            if not script_file.suffix == ".py":
-                continue
+            # Icon
+            row_name = row_shelf.row(align=True)
+            row_name.operator(
+                operator="shelfmade.set_shelf_icon",
+                text="",
+                icon="BLANK1" if shelf.icon == "NONE" else shelf.icon,
+            ).index = i
 
-            # Create a snippet
-            script = self.scripts.add()
-            script.name = script_file.stem
-            script.filepath = str(script_file)
+            # Name
+            row_name.prop(data=shelf, property="name", text="")
+
+            # Visibility
+            row_shelf.operator(
+                operator="shelfmade.edit_shelf_visibility",
+                text="",
+                icon="VIS_SEL_11",
+            ).index = i
+
+            # Path
+            row_shelf.prop(data=shelf, property="directory", text="")
+
+            # Move
+            row_move = row_shelf.row(align=True)
+            row_up = row_move.row(align=True)
+            if i == 0:
+                row_up.enabled = False
+            up = row_up.operator(
+                operator="shelfmade.move_shelf",
+                text="",
+                icon="TRIA_UP",
+            )
+            up.direction = "UP"
+            up.index = i
+
+            row_down = row_move.row(align=True)
+            if i == len(self.shelves) - 1:
+                row_down.enabled = False
+            down = row_down.operator(
+                operator="shelfmade.move_shelf",
+                text="",
+                icon="TRIA_DOWN",
+            )
+            down.direction = "DOWN"
+            down.index = i
+
+            # Remove
+            row_shelf.operator(
+                operator="shelfmade.remove_shelf",
+                text="",
+                icon="X",
+            ).index = i
+
+    def initialize_shelves(self):
+        """
+        Scan the script directories and initiate a script object for each script found.
+        """
+        if TYPE_CHECKING:
+            shelf: shelf.Shelf
+
+        # Scan all shelf directories
+        for shelf in self.shelves:
+            shelf.initialize_scripts()
+
+    @staticmethod
+    def this() -> Preferences:
+        """
+        Preference class instance pointer for shortcuts.
+
+        Returns:
+            Preferences: bpy instance
+        """
+        return bpy.context.preferences.addons[__package__].preferences

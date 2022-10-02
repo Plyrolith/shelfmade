@@ -7,17 +7,19 @@ Use at your own risk.
 
 > Please thoroughly analyze any script before adding it to your directory.
 
-## Instructions
+## Quick Start
 1. Install the add-on.
 1. Open the 3D view side panel.
-1. Set your script directory.
-1. Open the folder and add some python scripts ending in `.py`.
-1. Hit refresh.
+1. Click `Add Shelf`.
+1. Navigate to a directory containing Python scripts.
 1. **Run your *shelf made* scripts in any file!**
 
 ## Other Features
+* Rename & re-order your shelves & scripts, set icons for them.
+* Set column counts & button sizes of your shelves.
+* Choose which shelf is visible in which editor.
 * Run any other text datablock (ending in `.py`) from the *Local Scripts* panel.
-* Activate *Show Edit Buttons* and edit scripts directly in the Blender text editor.
+* Edit your scripts directly in the Blender text editor.
 * Run adjusted local copies from the *Local Scripts* panel.
 * Save edited scripts back to their source.
 
@@ -27,19 +29,21 @@ Use at your own risk.
 |`__init__.py`|Add-on initialization|
 |`catalogue.py`|Decorator & class for handling automated bpy class registration|
 |`draw.py`|All draw functions for panels|
-|`ops.py`|Operators: *Execute*, *Refresh*, *Edit*|
-|`panels.py`|Panel classes: *Scripts Directory*, *Scripts*, *Local Scripts*|
-|`preferences.py`|Add-on root class holding settings and snippet objects|
-|`snippet.py`|Snippet class definition with methods to handle single scripts|
+|`ops.py`|Multitude of operators to set up, organize and customize shelves and scripts|
+|`panels.py`|Panel classes: *Local Shelves*, as well as base *Shelves* and their space-based children|
+|`preferences.py`|Add-on root class holding settings and shelf objects|
+|`shelf.py`|*Shelf* & *Script* class definitions|
 |`utils.py`|Additional utilities, mostly UI goodies|
 
 ## To Do
-* Panels in more areas (script `context` is currently limited to View3D)
-* (Custom) icon selection
-* Edit display name
-* Re-order
-* Handle recursive folder structure
-* Framework to detect operators and register them directly
+- [x] Multiple panels
+- [x] Panels in more areas (script `context` is currently limited to View3D)
+- [x] Icon selection
+- [x] Edit display name
+- [x] Re-order
+- [ ] Custom icons from files (same stem)
+- [ ] Pick up display name/icon from comments within scripts
+- [ ] Framework to detect operators and register them directly
 
 ## Contribution
 Contributions are welcome!

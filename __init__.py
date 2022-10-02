@@ -2,12 +2,12 @@ bl_info = {
     "name": "Shelf Made",
     "description": "Quick and dirty script shelf panel for Blender",
     "author": "Tristan Weis",
-    "version": (1, 0, 0),
+    "version": (1, 1, 0),
     "blender": (3, 3, 0),
     "location": "View3D",
     "warning": "",
-    "doc_url": "",
-    "tracker_url": "",
+    "doc_url": "https://github.com/Plyrolith/shelfmade",
+    "tracker_url": "https://github.com/Plyrolith/shelfmade/issues",
     "support": "COMMUNITY",
     "category": "Pipeline",
 }
@@ -24,7 +24,7 @@ from . import (  # nopep8
     catalogue,
     ops,
     panels,
-    script,
+    shelf,
     preferences,
 )
 
@@ -41,20 +41,15 @@ def register():
     # Classes registration
     catalogue.Catalogue.bpy_register()
 
-    # Set preference class instance pointer for shortcuts
-    preferences.Preferences.this = bpy.context.preferences.addons[
-        __package__
-    ].preferences
-
     # Initialize scripts
-    preferences.Preferences.this.initialize_scripts()
+    prefs = preferences.Preferences.this()
+    prefs.initialize_shelves()
+    prefs.clean()
 
 
 def unregister():
     """
-    De-registration. First, loop through catalogued de-registration functions.
-    Then actually deregister all classes in reversed order to deactivate the
-    add-on.
+    De-registration.
     """
     # Classes un-registration
     catalogue.Catalogue.bpy_deregister()

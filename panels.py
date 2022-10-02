@@ -11,35 +11,18 @@ from . import catalogue, draw, preferences
 
 
 ########################################################################################
-# Panels
+# Base panels
 ########################################################################################
 
 
 @catalogue.bpy_register
-class DirectoryScripts(Panel):
-    bl_idname = "SHELFMADE_PT_viewport_directory_scripts"
-    bl_category = "Script Shelf"
-    bl_label = "Scripts"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_order = 20
-
-    @classmethod
-    def poll(cls, context: Context) -> bool:
-        return bool(preferences.Preferences.this.scripts)
-
-    def draw(self, context: Context):
-        draw.directory_scripts(panel=self, context=context)
-
-
-@catalogue.bpy_register
-class LocalScripts(Panel):
-    bl_idname = "SHELFMADE_PT_viewport_local_scripts"
-    bl_category = "Script Shelf"
+class LocalShelf(Panel):
+    bl_idname = "SHELFMADE_PT_viewport_local_shelf"
+    bl_category = "Shelf Made"
     bl_label = "Local Scripts"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_order = 30
+    bl_order = 100
 
     @classmethod
     def poll(cls, context: Context) -> bool:
@@ -49,14 +32,115 @@ class LocalScripts(Panel):
         draw.local_scripts(panel=self, context=context)
 
 
-@catalogue.bpy_register
-class Settings(Panel):
-    bl_idname = "SHELFMADE_PT_viewport_settings"
-    bl_category = "Script Shelf"
-    bl_label = "Script Directory"
-    bl_space_type = "VIEW_3D"
+# Not registered, serves as base
+class Shelves(Panel):
+    bl_category = "Shelf Made"
+    bl_label = "Shelves"
     bl_region_type = "UI"
-    bl_order = 10
+    bl_options = {"HEADER_LAYOUT_EXPAND"}
+    bl_order = 110
+
+    @classmethod
+    def poll(cls, context: Context) -> bool:
+        shelves = preferences.Preferences.this().shelves
+        return not shelves or any(
+            [
+                getattr(shelf, f"enabled_{context.area.ui_type.lower()}")
+                for shelf in shelves
+            ]
+        )
+
+    def draw_header(self, context: Context):
+        prefs = preferences.Preferences.this()
+        if not prefs.shelves:
+            return
+
+        row_header = self.layout.row(align=True)
+        row_header.alignment = "RIGHT"
+        row_header.operator(operator="shelfmade.add_shelf", text="", icon="ADD")
+        row_header.operator(
+            operator="shelfmade.reload",
+            text="",
+            icon="FILE_REFRESH",
+        )
+
+        row_header.prop(
+            data=prefs,
+            property="is_locked",
+            text="",
+            icon="LOCKED" if prefs.is_locked else "UNLOCKED",
+        )
 
     def draw(self, context: Context):
-        draw.settings(panel=self, context=context)
+        draw.shelf_scripts(panel=self, context=context)
+
+
+########################################################################################
+# Shelf panels
+########################################################################################
+
+
+@catalogue.bpy_register
+class ClipEditorShelves(Shelves):
+    bl_idname = "SHELFMADE_PT_clip_editor_shelves"
+    bl_space_type = "CLIP_EDITOR"
+
+
+@catalogue.bpy_register
+class DopesheetEditorShelves(Shelves):
+    bl_idname = "SHELFMADE_PT_dopesheet_editor_shelves"
+    bl_space_type = "DOPESHEET_EDITOR"
+
+
+@catalogue.bpy_register
+class FileBrowserShelves(Shelves):
+    bl_idname = "SHELFMADE_PT_file_browser_shelves"
+    bl_space_type = "FILE_BROWSER"
+
+
+@catalogue.bpy_register
+class GraphEditorShelves(Shelves):
+    bl_idname = "SHELFMADE_PT_graph_editor_shelves"
+    bl_space_type = "GRAPH_EDITOR"
+
+
+@catalogue.bpy_register
+class ImageEditorShelves(Shelves):
+    bl_idname = "SHELFMADE_PT_image_editor_shelves"
+    bl_space_type = "IMAGE_EDITOR"
+
+
+@catalogue.bpy_register
+class NlaEditorShelves(Shelves):
+    bl_idname = "SHELFMADE_PT_nla_editor_shelves"
+    bl_space_type = "NLA_EDITOR"
+
+
+@catalogue.bpy_register
+class NodeEditorShelves(Shelves):
+    bl_idname = "SHELFMADE_PT_node_editor_shelves"
+    bl_space_type = "NODE_EDITOR"
+
+
+@catalogue.bpy_register
+class SequenceEditorShelves(Shelves):
+    bl_idname = "SHELFMADE_PT_sequence_editor_shelves"
+    bl_space_type = "SEQUENCE_EDITOR"
+
+
+@catalogue.bpy_register
+class SpreadsheetShelves(Shelves):
+    bl_idname = "SHELFMADE_PT_spreadsheet_shelves"
+    bl_space_type = "SPREADSHEET"
+
+
+@catalogue.bpy_register
+class TextEditorShelves(Shelves):
+    bl_idname = "SHELFMADE_PT_text_editor_shelves"
+    bl_space_type = "TEXT_EDITOR"
+
+
+@catalogue.bpy_register
+class ViewportShelves(Shelves):
+    bl_idname = "SHELFMADE_PT_view_3d_shelves"
+    bl_space_type = "VIEW_3D"
