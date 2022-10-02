@@ -370,15 +370,16 @@ class SHELFMADE_OT_OpenScript(Operator, io_utils.ImportHelper):
                     break
 
         # Ensure text editor
-        area = utils.find_or_create_area(
-            context=context,
-            type="TEXT_EDITOR",
-            direction="VERTICAL",
-            factor=0.5,
-        )
+        if context.area.ui_type in draw.AREA_TYPES.keys():
+            area = utils.find_or_create_area(
+                context=context,
+                type="TEXT_EDITOR",
+                direction="VERTICAL",
+                factor=0.5,
+            )
 
-        # Open script in text editor
-        area.spaces[0].text = script
+            # Open script in text editor
+            area.spaces[0].text = script
 
         return {"FINISHED"}
 
