@@ -187,15 +187,15 @@ class Shelf(PropertyGroup):
             - bool: Whether this script exists at expected path or not
         """
         if TYPE_CHECKING:
-            script_grp: Script
+            script: Script
 
-        script_grp = self.scripts[script]
+        script = self.scripts[script]
 
         if self.script_path(script=script).exists():
-            script_grp.is_available = True
+            script.is_available = True
             return True
 
-        script_grp.is_available = False
+        script.is_available = False
         return False
 
     def script_path(self, script: int | str) -> Path:
