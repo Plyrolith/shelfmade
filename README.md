@@ -1,6 +1,8 @@
 # Shelf Made
 A quick and dirty script shelf for Blender.
 
+![Shelf Made](/docs/images/example.png)
+
 ## Warning
 This add-on may run any Python script within a given folder without any checks.
 Use at your own risk.
