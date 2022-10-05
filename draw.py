@@ -181,6 +181,9 @@ def local_scripts(panel: Panel, context: Context):
 
     # Draw script buttons
     for text in bpy.data.texts:
+        # Only draw python scripts
+        if not text.name.endswith(".py"):
+            continue
 
         # Generate name without .py
         name = text.name
