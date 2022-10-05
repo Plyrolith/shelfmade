@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import List, Literal, Optional, Union
-    from bpy.types import Area, Context
+    from bpy.types import Area, Context, Text
 
 import bpy
 from pathlib import Path
@@ -58,6 +58,28 @@ def find_or_create_area(
         return area
 
     return split_area(area=context.area, type=type, direction=direction, factor=factor)
+
+
+def open_script_file(filepath: Union[str, Path]) -> Text:
+    """
+    Open a file in Blender's text editor.
+
+    Parameters:
+        - filepath (str|Path)
+
+    Returns:
+        - Text
+    """
+    # Store existing texts snapshot
+    texts = bpy.data.texts[:]
+
+    # Open script from file path
+    bpy.ops.text.open(filepath=str(filepath))
+
+    # Find the newly created text datablock
+    for text in bpy.data.texts:
+        if text not in texts:
+            return text
 
 
 def same_paths(paths: List[Union[str, Path]]) -> bool:

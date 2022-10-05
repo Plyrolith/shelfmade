@@ -316,7 +316,7 @@ class SHELFMADE_OT_MoveShelf(Operator):
                 if shelves[i].is_visible(context=context):
                     new_index = i
 
-        if new_index == None:
+        if new_index is None:
             return {"CANCELLED"}
 
         # Move
@@ -361,13 +361,7 @@ class SHELFMADE_OT_OpenScript(Operator, io_utils.ImportHelper):
 
         # Open text via operator
         if not script:
-            bpy.ops.text.open(filepath=self.filepath)
-
-            # Find the newly created text datablock
-            for text in bpy.data.texts:
-                if text not in texts:
-                    script = text
-                    break
+            script = utils.open_script_file(filepath=script_path)
 
         # Ensure text editor
         if context.area.ui_type in draw.AREA_TYPES.keys():
@@ -575,8 +569,25 @@ class SHELFMADE_OT_RunScript(Operator, io_utils.ImportHelper):
             print(f"Script file {self.filepath} not found")
             return {"CANCELLED"}
 
+        # Exception store
+        exception = None
+
         # Run script
-        exec(compile(open(script_path).read(), script_path, "exec"))
+        text = utils.open_script_file(filepath=script_path)
+        with context.temp_override(edit_text=text):
+            try:
+                bpy.ops.text.run_script()
+
+            # If the script causes an exception, store it for later
+            except Exception as e:
+                exception = e
+
+        # Remove script
+        bpy.data.texts.remove(text)
+
+        # Raise potential exception after cleanup
+        if exception:
+            raise exception
 
         return {"FINISHED"}
 
