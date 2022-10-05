@@ -43,7 +43,9 @@ class Shelves(Panel):
     @classmethod
     def poll(cls, context: Context) -> bool:
         shelves = preferences.Preferences.this().shelves
-        return not shelves or any([shelf.is_visible(context) for shelf in shelves])
+        return any([shelf.is_visible(context) for shelf in shelves]) or (
+            not shelves and context.area.ui_type in draw.AREA_TYPES.keys()
+        )
 
     def draw_header(self, context: Context):
         prefs = preferences.Preferences.this()
