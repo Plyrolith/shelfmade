@@ -583,7 +583,10 @@ class SHELFMADE_OT_RunScript(Operator, io_utils.ImportHelper):
                 exception = e
 
         # Remove script
-        bpy.data.texts.remove(text)
+        try:
+            bpy.data.texts.remove(text)
+        except ReferenceError:
+            print("Could not delete script, already removed")
 
         # Raise potential exception after cleanup
         if exception:
