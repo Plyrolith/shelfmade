@@ -296,26 +296,27 @@ class SHELFMADE_OT_MoveShelf(Operator):
         shelves = preferences.Preferences.this().shelves
         new_index = None
 
-        # Single steps in the preference editor
-        if context.area.ui_type == "PREFERENCES":
-            new_index = self.index - 1 if self.direction == "UP" else self.index + 1
-
-            # Don't move past first or last position
-            if self.index < 0 or self.index >= len(shelves):
-                return {"CANCELLED"}
-
-        # Find the next available position based on shelf visibility in other areas
+        # Set the range to look up the new position based on direction
+        if self.direction == "UP":
+            stop = -1
+            step = -1
         else:
-            if self.direction == "UP":
-                stop = -1
-                step = -1
-            else:
-                stop = len(shelves)
-                step = 1
-            for i in range(self.index, stop, step):
-                if shelves[i].is_visible(context=context):
-                    new_index = i
+            stop = len(shelves)
+            step = 1
 
+        # Find the next available position within the defined range
+        for i in range(self.index, stop, step):
+
+            # Skip current position
+            if i == self.index:
+                continue
+
+            # Any visible shelf will do
+            if shelves[i].is_visible(context=context):
+                new_index = i
+                break
+
+        # No new position available
         if new_index is None:
             return {"CANCELLED"}
 
