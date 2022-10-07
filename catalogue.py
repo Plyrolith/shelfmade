@@ -44,10 +44,7 @@ def bpy_register(cls: T) -> T:
 
 
 class Catalogue:
-    """
-    Class that stores all catalogued classes and functions
-    and provides methods to register or run them.
-    """
+    """Stores all catalogued classes & provides methods to (de)register them"""
 
     # Initialization lists
     bpy_register_classes: List[BPY_REGISTER_TYPE] = []

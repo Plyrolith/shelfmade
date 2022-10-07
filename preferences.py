@@ -44,7 +44,8 @@ class Preferences(AddonPreferences):
 
     def draw(self, context: Context):
         """
-        Draw add-on the preferences panel.
+        Draw add-on the preferences panel. Displays an overview of all shelves with all
+        their respective properties and operators laid out.
 
         Parameters:
             - context (Context)

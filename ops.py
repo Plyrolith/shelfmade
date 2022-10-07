@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import Literal, Set, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import List, Tuple
@@ -16,17 +16,39 @@ from bpy_extras import io_utils
 from . import catalogue, draw, preferences, utils
 
 
+OPERATOR_RETURN_ITEMS = Set[
+    Literal[
+        "CANCELLED",
+        "FINISHED",
+        "INTERFACE",
+        "PASS_THROUGH",
+        "RUNNING_MODAL",
+    ]
+]
+
 ########################################################################################
-# Enumerator
+# Enumerators
 ########################################################################################
 
 
 def enum_icons(
-    operator: SHELFMADE_OT_SetScriptIcon,
+    operator: SHELFMADE_OT_SetScriptIcon | SHELFMADE_OT_SetShelfIcon,
     context: Context,
 ) -> List[Tuple[str, str, str, str, int]]:
     """
     Return the enumerator containing all availble Blender icons.
+
+    Parameters:
+        - operator (SHELFMADE_OT_SetScriptIcon | SHELFMADE_OT_SetShelfIcon)
+        - context (Context)
+
+    Returns:
+        - list of tuple: Blender enumerator tuple list; each tuple containing
+            - identifier (str)
+            - name (str)
+            - description (str)
+            - icon (str)
+            - index (int)
     """
     enum_icons = (
         bpy.types.UILayout.bl_rna.functions["prop"].parameters["icon"].enum_items
@@ -49,12 +71,31 @@ class SHELFMADE_OT_AddShelf(Operator, io_utils.ImportHelper):
 
     directory: StringProperty(name="Directory", subtype="DIR_PATH")
 
-    def invoke(self, context: Context, event: Event):
+    def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
+        """
+        Open the file browser dialog for directory selection.
+
+        Parameters:
+            - context (Context)
+            - event (Event)
+
+        Returns:
+            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
         context.window_manager.fileselect_add(self)
 
         return {"RUNNING_MODAL"}
 
-    def execute(self, context: Context):
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Add a new shelf and set its directory & name. Save user preferences
+
+        Parameters:
+            - context (Context)
+
+        Returns:
+            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
         if TYPE_CHECKING:
             shelf: shelf.Shelf
 
@@ -66,7 +107,7 @@ class SHELFMADE_OT_AddShelf(Operator, io_utils.ImportHelper):
             shelf.directory = self.directory
             shelf.name = Path(self.directory).name
 
-        # Save userprefs
+        # Save user preferences
         bpy.ops.wm.save_userpref()
 
         return {"FINISHED"}
@@ -80,15 +121,35 @@ class SHELFMADE_OT_CleanShelves(Operator):
     bl_label = "Clean Unavailable Shelves & Scripts"
     bl_options = {"INTERNAL"}
 
-    def invoke(self, context: Context, event: Event):
+    def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
+        """
+        Request user confirmation via dialog.
+
+        Parameters:
+            - context (Context)
+            - event (Event)
+
+        Returns:
+            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
         return context.window_manager.invoke_confirm(self, event)
 
-    def execute(self, context: Context):
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        (Re-)initialize shelves and remove any nonexistent shelves & scripts.
+        Save user preferences and redraw the current area's UI.
+
+        Parameters:
+            - context (Context)
+
+        Returns:
+            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
         # Clean
         preferences.Preferences.this().initialize_shelves()
         preferences.Preferences.this().clean()
 
-        # Save userprefs
+        # Save user preferences
         bpy.ops.wm.save_userpref()
 
         # Redraw UI
@@ -117,7 +178,17 @@ class SHELFMADE_OT_CallScriptMenu(Operator):
         name="Mode",
     )
 
-    def execute(self, context: Context):
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Run one of the script-editing operators based on the operator's mode enumerator.
+        The target script is chosen by shelf index and script name.
+
+        Parameters:
+            - context (Context)
+
+        Returns:
+            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
         if self.mode == "RENAME":
             bpy.ops.shelfmade.rename_script(
                 "INVOKE_DEFAULT",
@@ -175,7 +246,17 @@ class SHELFMADE_OT_CallShelfMenu(Operator):
         name="Mode",
     )
 
-    def execute(self, context: Context):
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Run one of the shelf-editing operators based on the operator's mode enumerator.
+        The target shelf is chosen by index.
+
+        Parameters:
+            - context (Context)
+
+        Returns:
+            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
         if self.mode == "RENAME":
             bpy.ops.shelfmade.rename_shelf(
                 "INVOKE_DEFAULT",
@@ -224,14 +305,40 @@ class SHELFMADE_OT_EditShelfVisibility(Operator):
 
     index: IntProperty(name="Shelf Index")
 
-    def invoke(self, context: Context, event: Event):
+    def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
+        """
+        Invoke this operator's properties dialog.
+
+        Parameters:
+            - context (Context)
+            - event (Event)
+
+        Returns:
+            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
         return context.window_manager.invoke_props_dialog(self, width=200)
 
     def draw(self, context: Context):
+        """
+        Draw a dialog containing shelf visiblity options. These include settings for
+        size, column count and area visibility toggles.
+
+        Parameters:
+            - context (Context)
+        """
         draw.shelf_visibility(panel=self, context=context, index=self.index)
 
-    def execute(self, context: Context):
-        # Save userprefs
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Save user preferences after the visibility may have changed in the draw phase.
+
+        Parameters:
+            - context (Context)
+
+        Returns:
+            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        # Save user preferences
         bpy.ops.wm.save_userpref()
 
         return {"FINISHED"}
@@ -255,7 +362,17 @@ class SHELFMADE_OT_MoveScript(Operator):
         name="Direction",
     )
 
-    def execute(self, context: Context):
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Move a script up or down by one position, based on the direction enumerator.
+        The target script is chosen by shelf index and script name.
+
+        Parameters:
+            - context (Context)
+
+        Returns:
+            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
         scripts = preferences.Preferences.this().shelves[self.index].scripts
         current_index = scripts.find(self.script)
 
@@ -269,7 +386,7 @@ class SHELFMADE_OT_MoveScript(Operator):
         # Move
         scripts.move(current_index, new_index)
 
-        # Save userprefs
+        # Save user preferences
         bpy.ops.wm.save_userpref()
 
         return {"FINISHED"}
@@ -292,7 +409,19 @@ class SHELFMADE_OT_MoveShelf(Operator):
         name="Direction",
     )
 
-    def execute(self, context: Context):
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Move a shelf up or down, based on the direction enumerator. Moving takes all
+        shelves' visibilities into account and the new position is chosen by moving past
+        the previous/next visible shelf within the current area.
+        The target shelf is chosen by index.
+
+        Parameters:
+            - context (Context)
+
+        Returns:
+            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
         shelves = preferences.Preferences.this().shelves
         new_index = None
 
@@ -323,7 +452,7 @@ class SHELFMADE_OT_MoveShelf(Operator):
         # Move
         shelves.move(self.index, new_index)
 
-        # Save userprefs
+        # Save user preferences
         bpy.ops.wm.save_userpref()
 
         return {"FINISHED"}
@@ -339,12 +468,33 @@ class SHELFMADE_OT_OpenScript(Operator, io_utils.ImportHelper):
 
     filepath: StringProperty(name="File Path", subtype="FILE_PATH")
 
-    def invoke(self, context: Context, event: Event):
+    def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
+        """
+        Open the file browser dialog for script file selection.
+
+        Parameters:
+            - context (Context)
+            - event (Event)
+
+        Returns:
+            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
         context.window_manager.fileselect_add(self)
 
         return {"RUNNING_MODAL"}
 
-    def execute(self, context: Context):
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Load a script file as a text datablock into the current blend file, if it is
+        not loaded yet. If no text editor is open, split the current area.
+        Make the datablock active for the first text editor found.
+
+        Parameters:
+            - context (Context)
+
+        Returns:
+            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
         script_path = Path(self.filepath)
 
         # Check the script
@@ -389,15 +539,33 @@ class SHELFMADE_OT_Reload(Operator):
 
     @classmethod
     def poll(self, context: Context) -> bool:
+        """
+        Make the reload button unavailable if there are no scripts with a directory.
+
+        Parameters:
+            - context (Context)
+
+        Returns:
+            - bool: Whether this operator is available or not
+        """
         return any(
             [shelf.directory for shelf in preferences.Preferences.this().shelves]
         )
 
-    def execute(self, context: Context):
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Reinitialize all shelves. Save user preferences and redraw the current area.
+
+        Parameters:
+            - context (Context)
+
+        Returns:
+            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
         # Reload
         preferences.Preferences.this().initialize_shelves()
 
-        # Save userprefs
+        # Save user preferences
         bpy.ops.wm.save_userpref()
 
         # Redraw UI
@@ -417,10 +585,30 @@ class SHELFMADE_OT_RemoveShelf(Operator):
     index: IntProperty(name="Shelf Index")
     script: StringProperty(name="Script Name")
 
-    def invoke(self, context: Context, event: Event):
+    def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
+        """
+        Request user confirmation via dialog.
+
+        Parameters:
+            - context (Context)
+            - event (Event)
+
+        Returns:
+            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
         return context.window_manager.invoke_confirm(self, event)
 
-    def execute(self, context: Context):
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Remove a shelf. Re-initialize shelves afterwards, save user preferences and
+        redraw the current area.
+
+        Parameters:
+            - context (Context)
+
+        Returns:
+            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
         # Remove shelf
         prefs = preferences.Preferences.this()
         prefs.shelves.remove(self.index)
@@ -428,7 +616,7 @@ class SHELFMADE_OT_RemoveShelf(Operator):
         # Re-initialize existing shelves
         prefs.initialize_shelves()
 
-        # Save userprefs
+        # Save user preferences
         bpy.ops.wm.save_userpref()
 
         # Redraw UI
@@ -449,7 +637,17 @@ class SHELFMADE_OT_RenameScript(Operator):
     script: StringProperty(name="Script Name")
     name: StringProperty(name="New Name")
 
-    def invoke(self, context: Context, event: Event):
+    def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
+        """
+        Store the current script name and invoke the operator properties dialog.
+
+        Parameters:
+            - context (Context)
+            - event (Event)
+
+        Returns:
+            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
         if TYPE_CHECKING:
             script: shelf.Script
             shelf: shelf.Shelf
@@ -463,6 +661,13 @@ class SHELFMADE_OT_RenameScript(Operator):
         return context.window_manager.invoke_props_dialog(self)
 
     def draw(self, context: Context):
+        """
+        Draw a dialog displaying the script's file name, as well as an input property
+        for its new display name.
+
+        Parameters:
+            - context (Context)
+        """
         if TYPE_CHECKING:
             script: shelf.Script
             shelf: shelf.Shelf
@@ -483,7 +688,17 @@ class SHELFMADE_OT_RenameScript(Operator):
         row_new.label(text="", icon="FILE_TEXT")
         row_new.prop(data=self, property="name", text="")
 
-    def execute(self, context: Context):
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Rename a script, save user preferences and redraw the current area.
+        The target script is chosen by shelf index and script name.
+
+        Parameters:
+            - context (Context)
+
+        Returns:
+            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
         if TYPE_CHECKING:
             script: shelf.Script
             shelf: shelf.Shelf
@@ -497,7 +712,7 @@ class SHELFMADE_OT_RenameScript(Operator):
         script = shelf.scripts[self.script]
         script.display_name = self.name
 
-        # Save userprefs
+        # Save user preferences
         bpy.ops.wm.save_userpref()
 
         # Redraw UI
@@ -517,7 +732,17 @@ class SHELFMADE_OT_RenameShelf(Operator):
     index: IntProperty(name="Shelf Index")
     name: StringProperty(name="New Name")
 
-    def invoke(self, context: Context, event: Event):
+    def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
+        """
+        Store the current shelf name and invoke the operator properties dialog.
+
+        Parameters:
+            - context (Context)
+            - event (Event)
+
+        Returns:
+            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
         # Store current name
         self.name = preferences.Preferences.this().shelves[self.index].name
 
@@ -525,13 +750,29 @@ class SHELFMADE_OT_RenameShelf(Operator):
         return context.window_manager.invoke_props_dialog(self)
 
     def draw(self, context: Context):
+        """
+        Draw the user input field for a new shelf display name.
+
+        Parameters:
+            - context (Context)
+        """
         # Shelf name
         row_new = self.layout.row()
         row_new.activate_init = True
         row_new.label(text="", icon="FILE_TEXT")
         row_new.prop(data=self, property="name", text="")
 
-    def execute(self, context: Context):
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Rename a shelf. Save user preferences and redraw the current area.
+        The target shelf is chosen by index.
+
+        Parameters:
+            - context (Context)
+
+        Returns:
+            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
         # Avoid empty name
         if not self.name:
             return {"CANCELLED"}
@@ -539,7 +780,7 @@ class SHELFMADE_OT_RenameShelf(Operator):
         # Rename
         preferences.Preferences.this().shelves[self.index].name = self.name
 
-        # Save userprefs
+        # Save user preferences
         bpy.ops.wm.save_userpref()
 
         # Redraw UI
@@ -558,12 +799,32 @@ class SHELFMADE_OT_RunScript(Operator, io_utils.ImportHelper):
 
     filepath: StringProperty(name="File Path", subtype="FILE_PATH")
 
-    def invoke(self, context: Context, event: Event):
+    def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
+        """
+        Open the file browser dialog for script file selection.
+
+        Parameters:
+            - context (Context)
+            - event (Event)
+
+        Returns:
+            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
         context.window_manager.fileselect_add(self)
 
         return {"RUNNING_MODAL"}
 
-    def execute(self, context: Context):
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Load a script file as a text datablock into the current blend file. Run it and
+        remove it right after. Raise any exceptions that might have occured afterwards.
+
+        Parameters:
+            - context (Context)
+
+        Returns:
+            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
         # Check the script
         script_path = Path(self.filepath)
         if not script_path.exists():
@@ -606,7 +867,16 @@ class SHELFMADE_OT_RunText(Operator):
 
     name: StringProperty(name="Text Name")
 
-    def execute(self, context: Context):
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Run a text datablock from within the current blend file.
+
+        Parameters:
+            - context (Context)
+
+        Returns:
+            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
         # Run the local script using the basic operator
         with context.temp_override(edit_text=bpy.data.texts[self.name]):
             bpy.ops.text.run_script()
@@ -627,7 +897,17 @@ class SHELFMADE_OT_SetScriptIcon(Operator):
     script: StringProperty(name="Script Name")
     icon: EnumProperty(items=enum_icons, name="Icon")
 
-    def invoke(self, context: Context, event: Event):
+    def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
+        """
+        Store the current script icon and invoke the icon enumerator search popup.
+
+        Parameters:
+            - context (Context)
+            - event (Event)
+
+        Returns:
+            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
         if TYPE_CHECKING:
             script: shelf.Script
             shelf: shelf.Shelf
@@ -642,7 +922,17 @@ class SHELFMADE_OT_SetScriptIcon(Operator):
 
         return self.execute(context)
 
-    def execute(self, context: Context):
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Set a script's icon (string). Save user preferences and redraw the current area.
+        The target script is chosen by shelf index and script name.
+
+        Parameters:
+            - context (Context)
+
+        Returns:
+            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
         if TYPE_CHECKING:
             script: shelf.Script
             shelf: shelf.Shelf
@@ -652,7 +942,7 @@ class SHELFMADE_OT_SetScriptIcon(Operator):
         script = shelf.scripts[self.script]
         script.icon = self.icon
 
-        # Save userprefs
+        # Save user preferences
         bpy.ops.wm.save_userpref()
 
         # Redraw UI
@@ -673,7 +963,17 @@ class SHELFMADE_OT_SetShelfIcon(Operator):
     index: IntProperty(name="Shelf Index")
     icon: EnumProperty(items=enum_icons, name="Icon")
 
-    def invoke(self, context: Context, event: Event):
+    def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
+        """
+        Store the current shelf icon and invoke the icon enumerator search popup.
+
+        Parameters:
+            - context (Context)
+            - event (Event)
+
+        Returns:
+            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
         # Store current icon
         self.icon = preferences.Preferences.this().shelves[self.index].icon
 
@@ -682,11 +982,21 @@ class SHELFMADE_OT_SetShelfIcon(Operator):
 
         return self.execute(context)
 
-    def execute(self, context: Context):
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Set a shelf's icon (string). Save user preferences and redraw the current area.
+        The target shelf is chosen by index.
+
+        Parameters:
+            - context (Context)
+
+        Returns:
+            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
         # Set icon
         preferences.Preferences.this().shelves[self.index].icon = self.icon
 
-        # Save userprefs
+        # Save user preferences
         bpy.ops.wm.save_userpref()
 
         # Redraw UI

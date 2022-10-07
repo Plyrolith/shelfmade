@@ -181,7 +181,7 @@ class Shelf(PropertyGroup):
         Checks whether a script exists and sets its 'is_available' flag.
 
         Parameters:
-            - script (int|str): Script index or file name
+            - script (int | str): Script index or file name
 
         Returns:
             - bool: Whether this script exists at expected path or not
@@ -203,7 +203,7 @@ class Shelf(PropertyGroup):
         Generate a path object for given script.
 
         Parameters:
-            - script (int|str): Script index or file name
+            - script (int | str): Script index or file name
 
         Returns:
             - Path

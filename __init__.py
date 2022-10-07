@@ -3,7 +3,7 @@ bl_info = {
     "description": "Quick and dirty script shelf panel for Blender",
     "author": "Tristan Weis",
     "version": (1, 1, 0),
-    "blender": (3, 3, 0),
+    "blender": (3, 3, 1),
     "location": "View3D",
     "warning": "",
     "doc_url": "https://github.com/Plyrolith/shelfmade",
@@ -18,8 +18,7 @@ bl_info = {
 ########################################################################################
 
 
-import bpy  # nopep8
-import os  # nopep8
+# Import all modules to jump-start classes' 'bpy_register' decorators
 from . import (  # nopep8
     catalogue,
     ops,
@@ -41,9 +40,11 @@ def register():
     # Classes registration
     catalogue.Catalogue.bpy_register()
 
-    # Initialize scripts
+    # Initialize shelves
     prefs = preferences.Preferences.this()
     prefs.initialize_shelves()
+
+    # Remove nonexistent shelves & scripts
     prefs.clean()
 
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Literal, Optional
+    from typing import Literal
     from bpy.types import Context, ID, Panel, UILayout
     from .shelf import Script, Shelf
 
@@ -12,11 +12,11 @@ from . import preferences
 
 
 ########################################################################################
-# Editors
+# Statics
 ########################################################################################
 
 
-#  area.ui_type
+# Dictionary containing 'area.ui_type' keys and area icon values
 AREA_TYPES = {
     "VIEW_3D": "VIEW3D",
     "IMAGE_EDITOR": "IMAGE",
@@ -50,6 +50,15 @@ AREA_TYPES = {
 
 
 def shelf_visibility(panel: Panel, context: Context, index: int):
+    """
+    Draw an interface containing shelf visiblity options. These include settings for
+    size, column count and area visibility toggles.
+
+    Parameters:
+        - panel (Panel)
+        - context (Context)
+        - shelf (int): Index of the shelf whose settings are drawn
+    """
     if TYPE_CHECKING:
         shelf: shelf.Shelf
 
@@ -79,7 +88,9 @@ def shelf_visibility(panel: Panel, context: Context, index: int):
 
 def shelf_scripts(panel: Panel, context: Context):
     """
-    Draw all scripts generated from the scripts directory.
+    Draw all shelves that are visible in the current area.
+    Wrap their respective script run operators in expander toggle boxes.
+    If there are no shelves, draw the 'Add Shelf' operator button instead.
 
     Parameters:
         - panel (Panel)
@@ -171,7 +182,7 @@ def shelf_scripts(panel: Panel, context: Context):
 
 def local_scripts(panel: Panel, context: Context):
     """
-    Draw all scripts generated from the scripts directory.
+    Draw all python script text datablocks found in the currently loaded blend file.
 
     Parameters:
         - panel (Panel)
@@ -202,7 +213,7 @@ def show_layout(
     layout: UILayout,
     data: ID,
     property: str,
-    text: Optional[str] = None,
+    text: str | None = None,
     alignment: Literal["LEFT", "CENTER", "RIGHT"] = "LEFT",
     icon: str = "",
 ) -> bool:
@@ -214,7 +225,7 @@ def show_layout(
         - data (ID): Host datablock of the bool property that holds the
           collapse status
         - property (str): Name of bool property that holds the collapse status
-        - text (str, optional): Alternative text for label
+        - text (str | None): Alternative text for label
         - alignment (str):
             - LEFT
             - CENTER
