@@ -143,9 +143,7 @@ class Shelf(PropertyGroup):
             # Find existing script
             script = None
             for existing_script in self.scripts:
-                if utils.same_paths(
-                    paths=[self.script_path(script=existing_script.name), script_file]
-                ):
+                if existing_script.name == script_file.name:
                     script = existing_script
                     script.is_available = True
 
