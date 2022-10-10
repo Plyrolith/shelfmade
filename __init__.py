@@ -18,9 +18,13 @@ bl_info = {
 ########################################################################################
 
 
+import bpy  # nopep8
+
+
 # Import all modules to jump-start classes' 'bpy_register' decorators
 from . import (  # nopep8
     catalogue,
+    draw,
     ops,
     panels,
     shelf,
@@ -47,10 +51,16 @@ def register():
     # Remove nonexistent shelves & scripts
     prefs.clean()
 
+    # Add shelf menu to text editor
+    bpy.types.TEXT_HT_header.append(draw.text_editor_shelf_menu)
+
 
 def unregister():
     """
     De-registration.
     """
+    # Remove text editor draw function
+    bpy.types.TEXT_HT_header.remove(draw.text_editor_shelf_menu)
+
     # Classes un-registration
     catalogue.Catalogue.bpy_deregister()

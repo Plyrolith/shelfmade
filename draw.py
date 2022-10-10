@@ -2,8 +2,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Literal
-    from bpy.types import Context, ID, Panel, UILayout
+    from typing import List, Literal
+    from bpy.types import Context, ID, Panel, Text, UILayout
     from .shelf import Script, Shelf
 
 import bpy
@@ -47,6 +47,35 @@ AREA_TYPES = {
 ########################################################################################
 # Draw functions
 ########################################################################################
+
+
+def local_scripts(panel: Panel, context: Context):
+    """
+    Draw all python script text datablocks found in the currently loaded blend file.
+
+    Parameters:
+        - panel (Panel)
+        - context (Context)
+    """
+    layout = panel.layout
+
+    # Draw script buttons
+    for text in bpy.data.texts:
+        # Only draw python scripts
+        if not text.name.endswith(".py"):
+            continue
+
+        # Generate name without .py
+        name = text.name
+        match = re.match(pattern=r"(.*)\.py$", string=name)
+        if match:
+            name = match.groups()[0]
+
+        # Draw operator
+        layout.row().operator(
+            operator="wm.run_text",
+            text=text.name,
+        ).name = text.name
 
 
 def shelf_visibility(panel: Panel, context: Context, index: int):
@@ -182,35 +211,6 @@ def shelf_scripts(panel: Panel, context: Context):
             ).index = sh_i
 
 
-def local_scripts(panel: Panel, context: Context):
-    """
-    Draw all python script text datablocks found in the currently loaded blend file.
-
-    Parameters:
-        - panel (Panel)
-        - context (Context)
-    """
-    layout = panel.layout
-
-    # Draw script buttons
-    for text in bpy.data.texts:
-        # Only draw python scripts
-        if not text.name.endswith(".py"):
-            continue
-
-        # Generate name without .py
-        name = text.name
-        match = re.match(pattern=r"(.*)\.py$", string=name)
-        if match:
-            name = match.groups()[0]
-
-        # Draw operator
-        layout.row().operator(
-            operator="wm.run_text",
-            text=text.name,
-        ).name = text.name
-
-
 def show_layout(
     layout: UILayout,
     data: ID,
@@ -267,3 +267,42 @@ def show_layout(
         )
 
     return enabled
+
+
+def text_editor_shelf_menu(panel: Panel, context: Context):
+    """
+    Draw additional menu buttons the text editor.
+
+    Parameters:
+        - panel (Panel)
+        - context (Context)
+    """
+    if TYPE_CHECKING:
+        shelves: List[Shelf]
+        text: Text
+
+    # Get active text
+    text = context.space_data.text
+    if not text:
+        return
+
+    layout = panel.layout
+
+    # Draw 'save' button if text is already in a shelf
+    filepath = bpy.path.abspath(text.filepath)
+    shelves = preferences.Preferences.this().shelves
+    for shelf in shelves:
+        if shelf.path_is_in_shelf(path=filepath):
+            layout.operator(
+                operator="text.save",
+                text=shelf.name,
+                icon=shelf.icon,
+            )
+            return
+
+    # Draw 'save to shelf' operator
+    layout.operator_menu_enum(
+        operator="text.save_text_to_shelf",
+        property="shelf",
+        text="To Shelf",
+    )

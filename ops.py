@@ -3,7 +3,7 @@ from typing import Literal, Set, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import List, Tuple
-    from bpy.types import Context, Event
+    from bpy.types import Context, Event, Text
     from . import shelf
 
 from pathlib import Path
@@ -29,6 +29,42 @@ OPERATOR_RETURN_ITEMS = Set[
 ########################################################################################
 # Enumerators
 ########################################################################################
+
+
+def enum_shelves(
+    operator: SHELFMADE_OT_SaveTextToShelf,
+    context: Context,
+) -> List[Tuple[str, str, str, str, int]]:
+    """
+    Return the enumerator containing all availble shelves.
+
+    Parameters:
+        - operator (SHELFMADE_OT_SetScriptIcon | SHELFMADE_OT_SetShelfIcon)
+        - context (Context)
+
+    Returns:
+        - list of tuple: Blender enumerator tuple list; each tuple containing
+            - identifier (str)
+            - name (str)
+            - description (str)
+            - icon (str)
+            - index (int)
+    """
+    if TYPE_CHECKING:
+        shelves: List[shelf.Shelf]
+
+    shelves = preferences.Preferences.this().shelves
+
+    # No shelves available
+    if not shelves:
+        return [("NONE", "No Shelf Available", "Add a shelf first")]
+
+    # List of shelves
+    return [
+        (str(idx), shelf.name, shelf.name, shelf.icon, idx)
+        for idx, shelf in enumerate(shelves)
+        if shelf.is_available
+    ]
 
 
 def enum_icons(
@@ -880,6 +916,68 @@ class SHELFMADE_OT_RunText(Operator):
         # Run the local script using the basic operator
         with context.temp_override(edit_text=bpy.data.texts[self.name]):
             bpy.ops.text.run_script()
+
+        return {"FINISHED"}
+
+
+@catalogue.bpy_register
+class SHELFMADE_OT_SaveTextToShelf(Operator):
+    """Save this text datablock to a shelf directory"""
+
+    bl_idname = "text.save_text_to_shelf"
+    bl_label = "Save To Shelf"
+    bl_options = {"INTERNAL"}
+
+    shelf: EnumProperty(items=enum_shelves, name="Shelf")
+
+    @classmethod
+    def poll(cls, context: Context) -> bool:
+        """
+        Make this operator availble in the text editor if there's an active text
+        datablock.
+
+        Parameters:
+            - context (Context)
+
+        Returns:
+            - bool: Whether this operator is available or not
+        """
+        return context.area.type == "TEXT_EDITOR" and context.space_data.text
+
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Save the currently opened text datablock to selected shelf.
+        Re-initiate the shelf. Save user preferences
+
+        Parameters:
+            - context (Context)
+
+        Returns:
+            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        if TYPE_CHECKING:
+            shelf: shelf.Shelf
+            text: Text
+
+        # Cancel if no shelves are available
+        if self.shelf == "NONE":
+            return {"CANCELLED"}
+
+        # Ensure python extension
+        text = context.space_data.text
+        if not text.name.endswith(".py"):
+            text.name += ".py"
+
+        # Save text
+        shelf = preferences.Preferences.this().shelves[int(self.shelf)]
+        filepath = str(Path(shelf.directory, text.name))
+        bpy.ops.text.save_as("EXEC_DEFAULT", filepath=filepath)
+
+        # Reload shelf
+        shelf.initialize_scripts()
+
+        # Save user preferences
+        bpy.ops.wm.save_userpref()
 
         return {"FINISHED"}
 

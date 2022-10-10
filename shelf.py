@@ -16,7 +16,7 @@ from bpy.props import (
 )
 from bpy.types import PropertyGroup
 
-from . import catalogue, utils
+from . import catalogue
 
 
 ########################################################################################
@@ -32,7 +32,19 @@ def update_directory(shelf: Shelf, context: Context):
         - shelf (Shelf)
         - context (Context)
     """
-    shelf.initialize_scripts()
+    if shelf.directory:
+        # Make sure the path is normalized
+        posix_path = Path(shelf.directory).resolve().as_posix()
+
+        # Set the posix path; this will trigger another update so return
+        if shelf.directory != posix_path:
+            shelf.directory = posix_path
+            return
+
+        # Re-initialize scripts
+        shelf.initialize_scripts()
+
+    # Save user preferences
     bpy.ops.wm.save_userpref()
 
 
@@ -173,6 +185,18 @@ class Shelf(PropertyGroup):
             return True
 
         return False
+
+    def path_is_in_shelf(self, path: str | Path) -> bool:
+        """
+        Check if given path is located within the shelf directory.
+
+        Parameters:
+            - path (str | Path): Path to check
+
+        Returns:
+            - bool: Whether the given path is relative to this shelf
+        """
+        return self.directory in Path(path).resolve().as_posix()
 
     def script_exists(self, script: int | str) -> bool:
         """
