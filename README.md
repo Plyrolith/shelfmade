@@ -22,6 +22,7 @@ Use at your own risk.
 * Choose which shelf is visible in which editor.
 * Run any other text datablock (ending in `.py`) from the *Local Scripts* panel.
 * Edit your scripts directly in the Blender text editor.
+* Save any text directly to one of your shelves from the text editor.
 * Run adjusted local copies from the *Local Scripts* panel.
 * Save edited scripts back to their source.
 
@@ -36,22 +37,3 @@ Use at your own risk.
 |`preferences.py`|Add-on root class holding settings and shelf objects|
 |`shelf.py`|*Shelf* & *Script* class definitions|
 |`utils.py`|Additional utilities, mostly UI goodies|
-
-## To Do
-- [x] Multiple panels
-- [x] Panels in more areas (script `context` is currently limited to View3D)
-- [x] Icon selection
-- [x] Edit display name
-- [x] Re-order
-- [ ] Custom icons from files (same stem)
-- [ ] Pick up display name/icon from comments within scripts
-- [ ] Framework to detect operators and register them directly
-
-## Contribution
-Contributions are welcome!
-
-### Requirements
-* *Black Formatter*
-* Strict typing
-* MD compatible docstrings
-* Create a pull request
