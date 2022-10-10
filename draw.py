@@ -60,7 +60,7 @@ def shelf_visibility(panel: Panel, context: Context, index: int):
         - shelf (int): Index of the shelf whose settings are drawn
     """
     if TYPE_CHECKING:
-        shelf: shelf.Shelf
+        shelf: Shelf
 
     shelf = preferences.Preferences.this().shelves[index]
     layout = panel.layout
@@ -129,17 +129,20 @@ def shelf_scripts(panel: Panel, context: Context):
             scripts = [s for s in shelf.scripts if s.is_available]
             if scripts:
 
-                # Generate column flow
-                flow_shelf = box_shelf.column_flow(
+                # Generate grid flow
+                grid_shelf = box_shelf.grid_flow(
                     columns=shelf.columns,
+                    even_columns=True,
+                    even_rows=True,
                     align=shelf.align,
                 )
                 columns = []
                 for _ in range(0, shelf.columns):
-                    columns.append(flow_shelf.column(align=shelf.align))
+                    columns.append(grid_shelf.column(align=shelf.align))
 
                 # Draw script buttons
                 for sc_i, script in enumerate(scripts):
+
                     # Assign to column & set height
                     row_script = columns[sc_i % shelf.columns].row(align=True)
                     row_script.scale_y = shelf.height
@@ -158,7 +161,6 @@ def shelf_scripts(panel: Panel, context: Context):
                             operator="shelfmade.call_script_menu",
                             property="mode",
                             text="",
-                            icon="DOWNARROW_HLT",
                         )
                         op_script.index = sh_i
                         op_script.script = script.name
