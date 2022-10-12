@@ -16,8 +16,7 @@ from pathlib import Path
 
 def find_area_by_type(context: Context, type: str) -> Area | None:
     """
-    Finds an area that fits given area type. If none is available, creates a new area
-    by splitting the current one.
+    Finds an area that fits given area type.
 
     Parameters:
         - context (Context)
