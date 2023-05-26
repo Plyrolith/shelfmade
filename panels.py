@@ -25,6 +25,7 @@ class LocalShelf(Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_order = 100
+    bl_options = {"DEFAULT_CLOSED"}
 
     @classmethod
     def poll(cls, context: Context) -> bool:
