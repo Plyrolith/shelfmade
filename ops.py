@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 from pathlib import Path
 
 import bpy
-from bpy.props import EnumProperty, IntProperty, StringProperty
+from bpy.props import BoolProperty, EnumProperty, IntProperty, StringProperty
 from bpy.types import Operator
 from bpy_extras import io_utils
 
@@ -106,6 +106,10 @@ class SHELFMADE_OT_AddShelf(Operator, io_utils.ImportHelper):
     bl_options = {"INTERNAL"}
 
     directory: StringProperty(name="Directory", subtype="DIR_PATH")
+    add_to_all_editors: BoolProperty(
+        name="Make Available In All Editors",
+        description="If disabled, the shelf will be visible in the 3D viewport only",
+    )
 
     def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
         """
@@ -142,6 +146,11 @@ class SHELFMADE_OT_AddShelf(Operator, io_utils.ImportHelper):
         if self.directory:
             shelf.directory = self.directory
             shelf.name = Path(self.directory).name
+
+        # Set editor visibility
+        if self.add_to_all_editors:
+            for area_type in draw.AREA_TYPES.keys():
+                setattr(shelf, f"enabled_{area_type.lower()}", True)
 
         # Save user preferences
         bpy.ops.wm.save_userpref()
