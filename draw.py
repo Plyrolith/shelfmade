@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import List, Literal
+    from typing import Literal
     from bpy.types import Context, ID, Panel, Text, UILayout
     from .shelf import Script, Shelf
 
@@ -278,7 +278,7 @@ def text_editor_shelf_menu(panel: Panel, context: Context):
         - context (Context)
     """
     if TYPE_CHECKING:
-        shelves: List[Shelf]
+        shelves: list[Shelf]
         text: Text
 
     # Get active text

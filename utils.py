@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import List, Literal
+    from typing import Literal
     from bpy.types import Area, Context, Text
 
 import bpy
@@ -81,7 +81,7 @@ def open_script_file(filepath: str | Path) -> Text:
             return text
 
 
-def same_paths(paths: List[str | Path]) -> bool:
+def same_paths(paths: list[str | Path]) -> bool:
     """
     Checks whether a list of paths points to the same file/folder.
 

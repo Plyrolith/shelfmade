@@ -1,19 +1,25 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import TypeVar
+
 import bpy
-from typing import List, Union, TypeVar
 
 
-T = TypeVar("T")
-BPY_REGISTER_TYPE = Union[
-    bpy.types.Header,
-    bpy.types.KeyingSetInfo,
-    bpy.types.Menu,
-    bpy.types.Operator,
-    bpy.types.Panel,
-    bpy.types.PropertyGroup,
-    bpy.types.RenderEngine,
-    bpy.types.UIList,
-]
+if TYPE_CHECKING:
+    T = TypeVar("T")
 
+BPY_REGISTER_TYPE = (
+    bpy.types.Header
+    | bpy.types.KeyingSetInfo
+    | bpy.types.Menu
+    | bpy.types.Operator
+    | bpy.types.Panel
+    | bpy.types.PropertyGroup
+    | bpy.types.RenderEngine
+    | bpy.types.UIList
+)
 
 ########################################################################################
 # Decorators for add-on initialization
@@ -27,10 +33,10 @@ def bpy_register(cls: T) -> T:
     ### Use as decorator.
 
     Parameters:
-        - cls (anything): bpy object class
+        - cls (Any): bpy object class
 
     Returns:
-        - anything: Unchanged object
+        - Any: Unchanged object
     """
     if cls not in Catalogue.bpy_register_classes:
         Catalogue.bpy_register_classes.append(cls)
@@ -47,7 +53,7 @@ class Catalogue:
     """Stores all catalogued classes & provides methods to (de)register them"""
 
     # Initialization lists
-    bpy_register_classes: List[BPY_REGISTER_TYPE] = []
+    bpy_register_classes: list[BPY_REGISTER_TYPE] = []
 
     # Initialization methods
     @classmethod

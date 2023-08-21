@@ -1,8 +1,8 @@
 from __future__ import annotations
-from typing import Literal, Set, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import List, Tuple
+    from typing import Literal
     from bpy.types import Context, Event, Text
     from . import shelf
 
@@ -16,15 +16,16 @@ from bpy_extras import io_utils
 from . import catalogue, draw, preferences, utils
 
 
-OPERATOR_RETURN_ITEMS = Set[
-    Literal[
-        "CANCELLED",
-        "FINISHED",
-        "INTERFACE",
-        "PASS_THROUGH",
-        "RUNNING_MODAL",
+if TYPE_CHECKING:
+    OPERATOR_RETURN_ITEMS = set[
+        Literal[
+            "CANCELLED",
+            "FINISHED",
+            "INTERFACE",
+            "PASS_THROUGH",
+            "RUNNING_MODAL",
+        ]
     ]
-]
 
 ########################################################################################
 # Enumerators
@@ -34,7 +35,7 @@ OPERATOR_RETURN_ITEMS = Set[
 def enum_shelves(
     operator: SHELFMADE_OT_SaveTextToShelf,
     context: Context,
-) -> List[Tuple[str, str, str, str, int]]:
+) -> list[tuple[str, str, str, str, int]]:
     """
     Return the enumerator containing all availble shelves.
 
@@ -43,7 +44,8 @@ def enum_shelves(
         - context (Context)
 
     Returns:
-        - list of tuple: Blender enumerator tuple list; each tuple containing
+        - list[tuple[str, str, str, str, int]]:
+          Blender enumerator tuple list; each tuple containing
             - identifier (str)
             - name (str)
             - description (str)
@@ -51,7 +53,7 @@ def enum_shelves(
             - index (int)
     """
     if TYPE_CHECKING:
-        shelves: List[shelf.Shelf]
+        shelves: list[shelf.Shelf]
 
     shelves = preferences.Preferences.this().shelves
 
@@ -70,7 +72,7 @@ def enum_shelves(
 def enum_icons(
     operator: SHELFMADE_OT_SetScriptIcon | SHELFMADE_OT_SetShelfIcon,
     context: Context,
-) -> List[Tuple[str, str, str, str, int]]:
+) -> list[tuple[str, str, str, str, int]]:
     """
     Return the enumerator containing all availble Blender icons.
 
@@ -79,7 +81,8 @@ def enum_icons(
         - context (Context)
 
     Returns:
-        - list of tuple: Blender enumerator tuple list; each tuple containing
+        - list[tuple[str, str, str, str, int]]:
+          Blender enumerator tuple list; each tuple containing
             - identifier (str)
             - name (str)
             - description (str)
@@ -120,7 +123,8 @@ class SHELFMADE_OT_AddShelf(Operator, io_utils.ImportHelper):
             - event (Event)
 
         Returns:
-            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+            - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+
         """
         context.window_manager.fileselect_add(self)
 
@@ -134,7 +138,8 @@ class SHELFMADE_OT_AddShelf(Operator, io_utils.ImportHelper):
             - context (Context)
 
         Returns:
-            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+            - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+
         """
         if TYPE_CHECKING:
             shelf: shelf.Shelf
@@ -175,7 +180,8 @@ class SHELFMADE_OT_CleanShelves(Operator):
             - event (Event)
 
         Returns:
-            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+            - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+
         """
         return context.window_manager.invoke_confirm(self, event)
 
@@ -188,7 +194,8 @@ class SHELFMADE_OT_CleanShelves(Operator):
             - context (Context)
 
         Returns:
-            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+            - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+
         """
         # Clean
         preferences.Preferences.this().initialize_shelves()
@@ -232,7 +239,8 @@ class SHELFMADE_OT_CallScriptMenu(Operator):
             - context (Context)
 
         Returns:
-            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+            - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+
         """
         if self.mode == "RENAME":
             bpy.ops.shelfmade.rename_script(
@@ -300,7 +308,8 @@ class SHELFMADE_OT_CallShelfMenu(Operator):
             - context (Context)
 
         Returns:
-            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+            - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+
         """
         if self.mode == "RENAME":
             bpy.ops.shelfmade.rename_shelf(
@@ -359,7 +368,8 @@ class SHELFMADE_OT_EditShelfVisibility(Operator):
             - event (Event)
 
         Returns:
-            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+            - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+
         """
         return context.window_manager.invoke_props_dialog(self, width=200)
 
@@ -381,7 +391,8 @@ class SHELFMADE_OT_EditShelfVisibility(Operator):
             - context (Context)
 
         Returns:
-            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+            - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+
         """
         # Save user preferences
         bpy.ops.wm.save_userpref()
@@ -416,7 +427,8 @@ class SHELFMADE_OT_MoveScript(Operator):
             - context (Context)
 
         Returns:
-            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+            - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+
         """
         scripts = preferences.Preferences.this().shelves[self.index].scripts
         current_index = scripts.find(self.script)
@@ -465,7 +477,8 @@ class SHELFMADE_OT_MoveShelf(Operator):
             - context (Context)
 
         Returns:
-            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+            - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+
         """
         shelves = preferences.Preferences.this().shelves
         new_index = None
@@ -480,7 +493,6 @@ class SHELFMADE_OT_MoveShelf(Operator):
 
         # Find the next available position within the defined range
         for i in range(self.index, stop, step):
-
             # Skip current position
             if i == self.index:
                 continue
@@ -522,7 +534,8 @@ class SHELFMADE_OT_OpenScript(Operator, io_utils.ImportHelper):
             - event (Event)
 
         Returns:
-            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+            - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+
         """
         context.window_manager.fileselect_add(self)
 
@@ -538,7 +551,8 @@ class SHELFMADE_OT_OpenScript(Operator, io_utils.ImportHelper):
             - context (Context)
 
         Returns:
-            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+            - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+
         """
         script_path = Path(self.filepath)
 
@@ -605,7 +619,8 @@ class SHELFMADE_OT_Reload(Operator):
             - context (Context)
 
         Returns:
-            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+            - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+
         """
         # Reload
         preferences.Preferences.this().initialize_shelves()
@@ -639,7 +654,8 @@ class SHELFMADE_OT_RemoveShelf(Operator):
             - event (Event)
 
         Returns:
-            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+            - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+
         """
         return context.window_manager.invoke_confirm(self, event)
 
@@ -652,7 +668,8 @@ class SHELFMADE_OT_RemoveShelf(Operator):
             - context (Context)
 
         Returns:
-            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+            - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+
         """
         # Remove shelf
         prefs = preferences.Preferences.this()
@@ -691,7 +708,8 @@ class SHELFMADE_OT_RenameScript(Operator):
             - event (Event)
 
         Returns:
-            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+            - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+
         """
         if TYPE_CHECKING:
             script: shelf.Script
@@ -742,7 +760,8 @@ class SHELFMADE_OT_RenameScript(Operator):
             - context (Context)
 
         Returns:
-            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+            - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+
         """
         if TYPE_CHECKING:
             script: shelf.Script
@@ -786,7 +805,8 @@ class SHELFMADE_OT_RenameShelf(Operator):
             - event (Event)
 
         Returns:
-            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+            - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+
         """
         # Store current name
         self.name = preferences.Preferences.this().shelves[self.index].name
@@ -816,7 +836,8 @@ class SHELFMADE_OT_RenameShelf(Operator):
             - context (Context)
 
         Returns:
-            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+            - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+
         """
         # Avoid empty name
         if not self.name:
@@ -853,7 +874,8 @@ class SHELFMADE_OT_RunScript(Operator, io_utils.ImportHelper):
             - event (Event)
 
         Returns:
-            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+            - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+
         """
         context.window_manager.fileselect_add(self)
 
@@ -868,7 +890,8 @@ class SHELFMADE_OT_RunScript(Operator, io_utils.ImportHelper):
             - context (Context)
 
         Returns:
-            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+            - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+
         """
         # Check the script
         script_path = Path(self.filepath)
@@ -920,7 +943,8 @@ class SHELFMADE_OT_RunText(Operator):
             - context (Context)
 
         Returns:
-            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+            - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+
         """
         # Run the local script using the basic operator
         with context.temp_override(edit_text=bpy.data.texts[self.name]):
@@ -962,7 +986,8 @@ class SHELFMADE_OT_SaveTextToShelf(Operator):
             - context (Context)
 
         Returns:
-            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+            - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+
         """
         if TYPE_CHECKING:
             shelf: shelf.Shelf
@@ -1013,7 +1038,8 @@ class SHELFMADE_OT_SetScriptIcon(Operator):
             - event (Event)
 
         Returns:
-            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+            - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+
         """
         if TYPE_CHECKING:
             script: shelf.Script
@@ -1038,7 +1064,8 @@ class SHELFMADE_OT_SetScriptIcon(Operator):
             - context (Context)
 
         Returns:
-            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+            - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+
         """
         if TYPE_CHECKING:
             script: shelf.Script
@@ -1079,7 +1106,8 @@ class SHELFMADE_OT_SetShelfIcon(Operator):
             - event (Event)
 
         Returns:
-            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+            - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+
         """
         # Store current icon
         self.icon = preferences.Preferences.this().shelves[self.index].icon
@@ -1098,7 +1126,8 @@ class SHELFMADE_OT_SetShelfIcon(Operator):
             - context (Context)
 
         Returns:
-            - set of str: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+            - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+
         """
         # Set icon
         preferences.Preferences.this().shelves[self.index].icon = self.icon
