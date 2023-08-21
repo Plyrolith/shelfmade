@@ -13,7 +13,7 @@ from bpy.props import BoolProperty, EnumProperty, IntProperty, StringProperty
 from bpy.types import Operator
 from bpy_extras import io_utils
 
-from . import catalogue, draw, preferences, utils
+from . import catalog, draw, preferences, utils
 
 
 if TYPE_CHECKING:
@@ -100,7 +100,7 @@ def enum_icons(
 ########################################################################################
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SHELFMADE_OT_AddShelf(Operator, io_utils.ImportHelper):
     """Add a directory to be included when scanning for scripts"""
 
@@ -163,7 +163,7 @@ class SHELFMADE_OT_AddShelf(Operator, io_utils.ImportHelper):
         return {"FINISHED"}
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SHELFMADE_OT_CleanShelves(Operator):
     """Clean data for all missing shelves and scripts"""
 
@@ -209,7 +209,7 @@ class SHELFMADE_OT_CleanShelves(Operator):
         return {"FINISHED"}
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SHELFMADE_OT_CallScriptMenu(Operator):
     """Open the menu for this script"""
 
@@ -277,7 +277,7 @@ class SHELFMADE_OT_CallScriptMenu(Operator):
         return {"FINISHED"}
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SHELFMADE_OT_CallShelfMenu(Operator):
     """Call the menu for this shelf"""
 
@@ -349,7 +349,7 @@ class SHELFMADE_OT_CallShelfMenu(Operator):
         return {"FINISHED"}
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SHELFMADE_OT_EditShelfVisibility(Operator):
     """Edit this shelf's panel visibility"""
 
@@ -400,7 +400,7 @@ class SHELFMADE_OT_EditShelfVisibility(Operator):
         return {"FINISHED"}
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SHELFMADE_OT_MoveScript(Operator):
     """Move this script up/down in its shelf"""
 
@@ -449,7 +449,7 @@ class SHELFMADE_OT_MoveScript(Operator):
         return {"FINISHED"}
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SHELFMADE_OT_MoveShelf(Operator):
     """Move this shelf up/down in the shelves list"""
 
@@ -515,7 +515,7 @@ class SHELFMADE_OT_MoveShelf(Operator):
         return {"FINISHED"}
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SHELFMADE_OT_OpenScript(Operator, io_utils.ImportHelper):
     """Open this Python script file in the text editor"""
 
@@ -588,7 +588,7 @@ class SHELFMADE_OT_OpenScript(Operator, io_utils.ImportHelper):
         return {"FINISHED"}
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SHELFMADE_OT_Reload(Operator):
     """Re-scan all shelves and build script lists"""
 
@@ -634,7 +634,7 @@ class SHELFMADE_OT_Reload(Operator):
         return {"FINISHED"}
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SHELFMADE_OT_RemoveShelf(Operator):
     """Remove a shelf"""
 
@@ -687,7 +687,7 @@ class SHELFMADE_OT_RemoveShelf(Operator):
         return {"FINISHED"}
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SHELFMADE_OT_RenameScript(Operator):
     """Change the display name of this script"""
 
@@ -785,7 +785,7 @@ class SHELFMADE_OT_RenameScript(Operator):
         return {"FINISHED"}
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SHELFMADE_OT_RenameShelf(Operator):
     """Change the display name of this shelf"""
 
@@ -855,7 +855,7 @@ class SHELFMADE_OT_RenameShelf(Operator):
         return {"FINISHED"}
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SHELFMADE_OT_RunScript(Operator, io_utils.ImportHelper):
     """Execute this Python script file"""
 
@@ -925,7 +925,7 @@ class SHELFMADE_OT_RunScript(Operator, io_utils.ImportHelper):
         return {"FINISHED"}
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SHELFMADE_OT_RunText(Operator):
     """Execute this local text datablock"""
 
@@ -953,7 +953,7 @@ class SHELFMADE_OT_RunText(Operator):
         return {"FINISHED"}
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SHELFMADE_OT_SaveTextToShelf(Operator):
     """Save this text datablock to a shelf directory"""
 
@@ -1016,7 +1016,7 @@ class SHELFMADE_OT_SaveTextToShelf(Operator):
         return {"FINISHED"}
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SHELFMADE_OT_SetScriptIcon(Operator):
     """Select an icon for this script"""
 
@@ -1085,7 +1085,7 @@ class SHELFMADE_OT_SetScriptIcon(Operator):
         return {"FINISHED"}
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SHELFMADE_OT_SetShelfIcon(Operator):
     """Select an icon for this shelf"""
 

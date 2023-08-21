@@ -23,7 +23,7 @@ import bpy  # nopep8
 
 # Import all modules to jump-start classes' 'bpy_register' decorators
 from . import (  # nopep8
-    catalogue,
+    catalog,
     draw,
     ops,
     panels,
@@ -42,7 +42,7 @@ def register():
     Main registration.
     """
     # Classes registration
-    catalogue.register()
+    catalog.register()
 
     # Initialize shelves
     prefs = preferences.Preferences.this()
@@ -63,4 +63,4 @@ def unregister():
     bpy.types.TEXT_HT_header.remove(draw.text_editor_shelf_menu)
 
     # Classes un-registration
-    catalogue.unregister()
+    catalog.unregister()

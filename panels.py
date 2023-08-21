@@ -7,7 +7,7 @@ if TYPE_CHECKING:
 import bpy
 from bpy.types import Panel
 
-from . import catalogue, draw, preferences
+from . import catalog, draw, preferences
 
 
 ########################################################################################
@@ -15,7 +15,7 @@ from . import catalogue, draw, preferences
 ########################################################################################
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class LocalShelf(Panel):
     """Displays one operator for each Python script in the current blend file"""
 
@@ -115,7 +115,7 @@ class Shelves(Panel):
 ########################################################################################
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class ClipEditorShelves(Shelves):
     """Shelf panel for the Clip Editor"""
 
@@ -123,7 +123,7 @@ class ClipEditorShelves(Shelves):
     bl_space_type = "CLIP_EDITOR"
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class DopesheetEditorShelves(Shelves):
     """Shelf panel for the Dopesheet Editor"""
 
@@ -131,7 +131,7 @@ class DopesheetEditorShelves(Shelves):
     bl_space_type = "DOPESHEET_EDITOR"
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class FileBrowserShelves(Shelves):
     """Shelf panel for the File Browser"""
 
@@ -139,7 +139,7 @@ class FileBrowserShelves(Shelves):
     bl_space_type = "FILE_BROWSER"
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class GraphEditorShelves(Shelves):
     """Shelf panel for the Graph Editor"""
 
@@ -147,7 +147,7 @@ class GraphEditorShelves(Shelves):
     bl_space_type = "GRAPH_EDITOR"
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class ImageEditorShelves(Shelves):
     """Shelf panel for the Image Editor"""
 
@@ -155,7 +155,7 @@ class ImageEditorShelves(Shelves):
     bl_space_type = "IMAGE_EDITOR"
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class NlaEditorShelves(Shelves):
     """Shelf panel for the NLA Editor"""
 
@@ -163,7 +163,7 @@ class NlaEditorShelves(Shelves):
     bl_space_type = "NLA_EDITOR"
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class NodeEditorShelves(Shelves):
     """Shelf panel for the Node Editor"""
 
@@ -171,7 +171,7 @@ class NodeEditorShelves(Shelves):
     bl_space_type = "NODE_EDITOR"
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SequenceEditorShelves(Shelves):
     """Shelf panel for the Sequence Editor"""
 
@@ -179,7 +179,7 @@ class SequenceEditorShelves(Shelves):
     bl_space_type = "SEQUENCE_EDITOR"
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SpreadsheetShelves(Shelves):
     """Shelf panel for the Spreadsheet Editor"""
 
@@ -187,7 +187,7 @@ class SpreadsheetShelves(Shelves):
     bl_space_type = "SPREADSHEET"
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class TextEditorShelves(Shelves):
     """Shelf panel for the Text Editor"""
 
@@ -195,7 +195,7 @@ class TextEditorShelves(Shelves):
     bl_space_type = "TEXT_EDITOR"
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class ViewportShelves(Shelves):
     """Shelf panel for the 3D Viewport"""
 

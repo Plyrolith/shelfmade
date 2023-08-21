@@ -16,7 +16,7 @@ from bpy.props import (
 )
 from bpy.types import PropertyGroup
 
-from . import catalogue
+from . import catalog
 
 
 ########################################################################################
@@ -64,7 +64,7 @@ def update_save_userpref(shelf: Shelf, context: Context):
 ########################################################################################
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class Script(PropertyGroup):
     """Representation of a single script within a shelf"""
 
@@ -79,7 +79,7 @@ class Script(PropertyGroup):
 ########################################################################################
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class Shelf(PropertyGroup):
     """Single shelf, directory containing scripts to load and display settings"""
 

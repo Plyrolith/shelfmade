@@ -8,7 +8,7 @@ import bpy
 from bpy.props import BoolProperty, CollectionProperty
 from bpy.types import AddonPreferences
 
-from . import catalogue, shelf
+from . import catalog, shelf
 
 
 ########################################################################################
@@ -16,7 +16,7 @@ from . import catalogue, shelf
 ########################################################################################
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class Preferences(AddonPreferences):
     """Add-on preferences"""
 
