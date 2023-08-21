@@ -42,7 +42,7 @@ def register():
     Main registration.
     """
     # Classes registration
-    catalogue.Catalogue.bpy_register()
+    catalogue.register()
 
     # Initialize shelves
     prefs = preferences.Preferences.this()
@@ -63,4 +63,4 @@ def unregister():
     bpy.types.TEXT_HT_header.remove(draw.text_editor_shelf_menu)
 
     # Classes un-registration
-    catalogue.Catalogue.bpy_deregister()
+    catalogue.unregister()

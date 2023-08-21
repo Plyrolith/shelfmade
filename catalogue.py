@@ -21,6 +21,15 @@ BPY_REGISTER_TYPE = (
     | bpy.types.UIList
 )
 
+
+########################################################################################
+# Initialization list
+########################################################################################
+
+
+bpy_register_classes: list[BPY_REGISTER_TYPE] = []
+
+
 ########################################################################################
 # Decorators for add-on initialization
 ########################################################################################
@@ -38,36 +47,28 @@ def bpy_register(cls: T) -> T:
     Returns:
         - Any: Unchanged object
     """
-    if cls not in Catalogue.bpy_register_classes:
-        Catalogue.bpy_register_classes.append(cls)
+    if cls not in bpy_register_classes:
+        bpy_register_classes.append(cls)
 
     return cls
 
 
 ########################################################################################
-# Catalogue class
+# Initialization functions
 ########################################################################################
 
 
-class Catalogue:
-    """Stores all catalogued classes & provides methods to (de)register them"""
+def register():
+    """
+    Loop through all collected classes and register them with bpy.
+    """
+    for bpy_cls in bpy_register_classes:
+        bpy.utils.register_class(bpy_cls)
 
-    # Initialization lists
-    bpy_register_classes: list[BPY_REGISTER_TYPE] = []
 
-    # Initialization methods
-    @classmethod
-    def bpy_register(cls):
-        """
-        Loop through all collected classes and register them with bpy.
-        """
-        for bpy_cls in cls.bpy_register_classes:
-            bpy.utils.register_class(bpy_cls)
-
-    @classmethod
-    def bpy_deregister(cls):
-        """
-        Loop through all collected classes and deregister them with bpy.
-        """
-        for bpy_cls in reversed(cls.bpy_register_classes):
-            bpy.utils.unregister_class(bpy_cls)
+def unregister():
+    """
+    Loop through all collected classes and deregister them with bpy.
+    """
+    for bpy_cls in reversed(bpy_register_classes):
+        bpy.utils.unregister_class(bpy_cls)
