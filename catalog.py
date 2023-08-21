@@ -3,6 +3,16 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import TypeVar
+    from bpy.types import (
+        Header,
+        KeyingSetInfo,
+        Menu,
+        Operator,
+        Panel,
+        PropertyGroup,
+        RenderEngine,
+        UIList,
+    )
 
 import bpy
 
@@ -10,24 +20,22 @@ import bpy
 if TYPE_CHECKING:
     T = TypeVar("T")
 
-BPY_REGISTER_TYPE = (
-    bpy.types.Header
-    | bpy.types.KeyingSetInfo
-    | bpy.types.Menu
-    | bpy.types.Operator
-    | bpy.types.Panel
-    | bpy.types.PropertyGroup
-    | bpy.types.RenderEngine
-    | bpy.types.UIList
-)
-
 
 ########################################################################################
 # Initialization list
 ########################################################################################
 
 
-bpy_register_classes: list[BPY_REGISTER_TYPE] = []
+bpy_register_classes: list[
+    Header
+    | KeyingSetInfo
+    | Menu
+    | Operator
+    | Panel
+    | PropertyGroup
+    | RenderEngine
+    | UIList
+] = []
 
 
 ########################################################################################
