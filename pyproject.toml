@@ -10,9 +10,9 @@ readme = "README.md"
 python = "^3.10"
 
 [tool.poetry.group.dev.dependencies]
-black = "^23.7.0"
 flake8 = "^6.1.0"
 fake-bpy-module-latest = "^20230821"
+ruff = "^0.15.0"
 
 [build-system]
 requires = ["poetry-core"]
