@@ -1,0 +1,12 @@
+{
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.rulers": [88],
+    "python.analysis.autoImportCompletions": false,
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportInvalidTypeForm": "none",
+        "reportOptionalMemberAccess": "none",
+        "reportRedeclaration": "none",
+    },
+    "python.analysis.typeCheckingMode": "standard",
+}
