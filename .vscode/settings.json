@@ -4,9 +4,14 @@
     "editor.rulers": [88],
     "python.analysis.autoImportCompletions": false,
     "python.analysis.diagnosticSeverityOverrides": {
+        "reportIncompatibleMethodOverride": "none",
         "reportInvalidTypeForm": "none",
         "reportOptionalMemberAccess": "none",
         "reportRedeclaration": "none",
     },
     "python.analysis.typeCheckingMode": "standard",
+    "flake8.args": [
+        "--max-line-length=88",
+        "--ignore=F722,F821,W503"
+    ]
 }
