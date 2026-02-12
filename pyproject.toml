@@ -10,8 +10,8 @@ readme = "README.md"
 python = "^3.10"
 
 [tool.poetry.group.dev.dependencies]
-flake8 = "^6.1.0"
-fake-bpy-module-latest = "^20230821"
+flake8 = "^7.3.0"
+fake-bpy-module-latest = "^20260211"
 ruff = "^0.15.0"
 
 [build-system]
