@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -11,16 +12,11 @@ from bpy.types import AddonPreferences
 from . import catalog, shelf
 
 
-########################################################################################
-# Add-on root
-########################################################################################
-
-
 @catalog.bpy_register
 class Preferences(AddonPreferences):
     """Add-on preferences"""
 
-    bl_idname = __package__
+    bl_idname = __package__ or "shelfmade"
 
     is_locked: BoolProperty(name="(Un)Lock Shelves", update=shelf.update_save_userpref)
     shelves: CollectionProperty(type=shelf.Shelf, name="Directories")
@@ -46,8 +42,8 @@ class Preferences(AddonPreferences):
         Draw add-on the preferences panel. Displays an overview of all shelves with all
         their respective properties and operators laid out.
 
-        Parameters:
-            - context (Context)
+        Args:
+            context (Context)
         """
         if TYPE_CHECKING:
             layout: UILayout
@@ -79,7 +75,7 @@ class Preferences(AddonPreferences):
             ).index = i
 
             # Name
-            row_name.prop(data=shelf, property="name", text="")
+            row_name.prop(shelf, "name", text="")
 
             # Visibility
             row_shelf.operator(
@@ -89,7 +85,7 @@ class Preferences(AddonPreferences):
             ).index = i
 
             # Path
-            row_shelf.prop(data=shelf, property="directory", text="")
+            row_shelf.prop(shelf, "directory", text="")
 
             # Move
             row_move = row_shelf.row(align=True)
@@ -134,6 +130,14 @@ class Preferences(AddonPreferences):
             shelf.initialize_scripts()
 
     @staticmethod
+    def register():
+        """
+        Initialize shelves & remove nonexistent shelves & scripts.
+        """
+        Preferences.this().initialize_shelves()
+        Preferences.this().clean()
+
+    @staticmethod
     def this() -> Preferences:
         """
         Preference class instance pointer for shortcuts.
@@ -141,4 +145,7 @@ class Preferences(AddonPreferences):
         Returns:
             Preferences: bpy instance
         """
-        return bpy.context.preferences.addons[__package__].preferences
+        prefs = bpy.context.preferences.addons[__package__ or "shelfmade"].preferences
+        if not prefs:
+            raise ValueError("Add-on Preferences not found.")
+        return prefs  # type: ignore

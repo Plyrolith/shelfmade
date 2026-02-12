@@ -1,7 +1,9 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from os import PathLike
     from bpy.types import Context
 
 from pathlib import Path
@@ -10,27 +12,24 @@ import bpy
 from bpy.props import (
     BoolProperty,
     CollectionProperty,
-    IntProperty,
     FloatProperty,
+    IntProperty,
     StringProperty,
 )
 from bpy.types import PropertyGroup
 
 from . import catalog
 
-
-########################################################################################
 # Update functions
-########################################################################################
 
 
 def update_directory(shelf: Shelf, context: Context):
     """
     Re-scans scripts on any directory change. Saves userprefs.
 
-    Parameters:
-        - shelf (Shelf)
-        - context (Context)
+    Args:
+        shelf (Shelf)
+        context (Context)
     """
     if shelf.directory:
         # Make sure the path is normalized
@@ -52,16 +51,14 @@ def update_save_userpref(shelf: Shelf, context: Context):
     """
     Save userprefs on update.
 
-    Parameters:
-        - shelf (Shelf)
-        - context (Context)
+    Args:
+        shelf (Shelf)
+        context (Context)
     """
     bpy.ops.wm.save_userpref()
 
 
-########################################################################################
 # Script snippet class
-########################################################################################
 
 
 @catalog.bpy_register
@@ -74,9 +71,7 @@ class Script(PropertyGroup):
     name: StringProperty(name="File Name")
 
 
-########################################################################################
 # Shelf class
-########################################################################################
 
 
 @catalog.bpy_register
@@ -120,7 +115,7 @@ class Shelf(PropertyGroup):
         Checks whether this folder exists and sets 'is_available' flag.
 
         Returns:
-            - bool: Whether this folder exists at given location
+            bool: Whether this folder exists at given location
         """
         if self.directory and Path(self.directory).is_dir():
             self.is_available = True
@@ -135,7 +130,7 @@ class Shelf(PropertyGroup):
         """
         if TYPE_CHECKING:
             existing_script: Script
-            script: Script
+            script: Script | None
 
         # Disable all scripts
         [setattr(script, "is_available", False) for script in self.scripts]
@@ -168,7 +163,7 @@ class Shelf(PropertyGroup):
     def is_visible(self, context: Context) -> bool:
         """
         Returns:
-            - bool: Whether this shelf should be drawn within the given context
+            bool: Whether this shelf should be drawn within the given context
         """
         # Always draw in preferences
         area_type = context.area.ui_type
@@ -186,48 +181,48 @@ class Shelf(PropertyGroup):
 
         return False
 
-    def path_is_in_shelf(self, path: str | Path) -> bool:
+    def path_is_in_shelf(self, path: str | PathLike) -> bool:
         """
         Check if given path is located within the shelf directory.
 
-        Parameters:
-            - path (str | Path): Path to check
+        Args:
+            path (str | PathLike): Path to check
 
         Returns:
-            - bool: Whether the given path is relative to this shelf
+            bool: Whether the given path is relative to this shelf
         """
         return self.directory in Path(path).resolve().as_posix()
 
-    def script_exists(self, script: int | str) -> bool:
+    def script_exists(self, key: int | str) -> bool:
         """
         Checks whether a script exists and sets its 'is_available' flag.
 
-        Parameters:
-            - script (int | str): Script index or file name
+        Args:
+            script (int | str): Script index or file name
 
         Returns:
-            - bool: Whether this script exists at expected path or not
+            bool: Whether this script exists at expected path or not
         """
         if TYPE_CHECKING:
             script: Script
 
-        script = self.scripts[script]
+        script = self.scripts[key]
 
-        if self.script_path(script=script).exists():
+        if self.script_path(key).exists():
             script.is_available = True
             return True
 
         script.is_available = False
         return False
 
-    def script_path(self, script: int | str) -> Path:
+    def script_path(self, key: int | str) -> Path:
         """
         Generate a path object for given script.
 
-        Parameters:
-            - script (int | str): Script index or file name
+        Args:
+            key (int | str): Script index or file name
 
         Returns:
-            - Path
+            Path
         """
-        return Path(self.directory, self.scripts[script].name)
+        return Path(self.directory, self.scripts[key].name)

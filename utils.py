@@ -1,29 +1,29 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from os import PathLike
     from typing import Literal
+
+    from bpy.stub_internal.rna_enums import SpaceTypeItems
     from bpy.types import Area, Context, Text
 
-import bpy
 from pathlib import Path
 
-
-########################################################################################
-# Utilities
-########################################################################################
+import bpy
 
 
 def find_area_by_type(context: Context, type: str) -> Area | None:
     """
     Finds an area that fits given area type.
 
-    Parameters:
-        - context (Context)
-        - type (str): Area type to look for
+    Args:
+        context (Context)
+        type (str): Area type to look for
 
     Returns:
-        - Area | None: First area of given type, if any exist
+        Area | None: First area of given type, if any exist
     """
     for window in context.window_manager.windows:
         for area in window.screen.areas:
@@ -33,7 +33,7 @@ def find_area_by_type(context: Context, type: str) -> Area | None:
 
 def find_or_create_area(
     context: Context,
-    type: str,
+    type: SpaceTypeItems,
     direction: Literal["HORIZONTAL", "VERTICAL"],
     factor: float,
 ) -> Area:
@@ -41,33 +41,37 @@ def find_or_create_area(
     Finds an area that fits given area type. If none is available, creates a new area
     by splitting the current one.
 
-    Parameters:
-        - context (Context)
-        - type (str): Area type to be found or created
-        - direction (str): Split direction
-            - HORIZONTAL
-            - VERTICAL
-        - factor (float): How much space newly created area will take
+    Args:
+        context (Context)
+        type (str): Area type to be found or created
+        direction (str): Split direction
+            HORIZONTAL
+            VERTICAL
+        factor (float): How much space newly created area will take
 
     Returns:
-        - Area: Newly created area
+        Area: Newly created area
     """
-    area = find_area_by_type(context=context, type=type)
+    area = find_area_by_type(context, type)
     if area:
         return area
 
-    return split_area(area=context.area, type=type, direction=direction, factor=factor)
+    area = context.area
+    if not area:
+        raise ValueError("No area found to split.")
+
+    return split_area(area, type, direction, factor)
 
 
-def open_script_file(filepath: str | Path) -> Text:
+def open_script_file(filepath: str | PathLike) -> Text:
     """
     Open a file in Blender's text editor.
 
-    Parameters:
-        - filepath (str | Path)
+    Args:
+        filepath (str | PathLike)
 
     Returns:
-        - Text
+        Text | None
     """
     # Store existing texts snapshot
     texts = bpy.data.texts[:]
@@ -80,24 +84,28 @@ def open_script_file(filepath: str | Path) -> Text:
         if text not in texts:
             return text
 
+    raise ValueError("Couldn't find newly created text datablock.")
 
-def same_paths(paths: list[str | Path]) -> bool:
+
+def same_paths(*paths: str | PathLike) -> bool:
     """
-    Checks whether a list of paths points to the same file/folder.
+    Checks whether given paths point to the same file/folder.
 
-    Parameters:
-        - paths (list of str | Path): List of paths to compare
+    Args:
+        paths (str | PathLike): Paths to compare
 
     Returns:
-        - bool: Whether all paths are the same or not
+        bool: Whether all paths are the same or not
     """
     assert len(paths) > 1, "Multiple paths needed to compare"
 
     first_path = None
     for path in paths:
         # If path is a string, guarantee absolute path and convert to pathlib
-        if isinstance(path, str):
-            path = Path(bpy.path.abspath(path=path))
+        if isinstance(path, (str, bytes)):
+            path = Path(bpy.path.abspath(path))
+        elif not isinstance(path, Path):
+            raise ValueError(f"Invalid path type {type(path)}")
 
         # Resolve and convert to posix
         path = path.resolve().as_posix()
@@ -116,34 +124,36 @@ def same_paths(paths: list[str | Path]) -> bool:
 
 def split_area(
     area: Area,
-    type: str,
+    type: SpaceTypeItems,
     direction: Literal["HORIZONTAL", "VERTICAL"],
     factor: float,
 ) -> Area:
     """
     Splits the specified area and creates a new area of given input type.
 
-    Parameters:
-        - area (Area): Area to split
-        - type (str): Area type of the newly created area
-        - direction (str): Split direction
-            - HORIZONTAL
-            - VERTICAL
-        - factor (float): How much space newly the created area will take
+    Args:
+        area (Area): Area to split
+        type (str): Area type of the newly created area
+        direction (str): Split direction
+            HORIZONTAL
+            VERTICAL
+        factor (float): How much space newly the created area will take
 
     Returns:
-        - Area: Newly created area
+        Area: Newly created area
     """
     # Save list of areas to be able to return newly created area
     screen = area.id_data
-    start_areas = screen.areas[:]
+    start_areas = screen.areas[:]  # type: ignore
 
     # Do split
     with bpy.context.temp_override(area=area):
         bpy.ops.screen.area_split(direction=direction, factor=factor)
 
     # Return the newly created area
-    for area in screen.areas:
+    for area in screen.areas:  # type: ignore
         if area not in start_areas:
-            area.type = type.upper()
+            area.type = type
             return area
+
+    raise ValueError("Couldn't find new area.")

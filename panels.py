@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -8,11 +9,6 @@ import bpy
 from bpy.types import Panel
 
 from . import catalog, draw, preferences
-
-
-########################################################################################
-# Base panels
-########################################################################################
 
 
 @catalog.bpy_register
@@ -33,16 +29,16 @@ class LocalShelf(Panel):
         Draw this panel only if any Python script ending in '.py' exists within the
         loaded blend file.
 
-        Parameters:
-            - context (Context)
+        Args:
+            context (Context)
 
         Returns:
-            - bool: Whether this panel is drawn or not
+            bool: Whether this panel is drawn or not
         """
         return any([text.name.endswith(".py") for text in bpy.data.texts])
 
     def draw(self, context: Context):
-        draw.local_scripts(panel=self, context=context)
+        draw.local_scripts(self, context)
 
 
 # Not registered, serves as base
@@ -62,11 +58,11 @@ class Shelves(Panel):
         the panels drawn within all allowed areas (displaying only the 'Add Shelf'
         operator).
 
-        Parameters:
-            - context (Context)
+        Args:
+            context (Context)
 
         Returns:
-            - bool: Whether this panel is drawn or not
+            bool: Whether this panel is drawn or not
         """
         shelves = preferences.Preferences.this().shelves
         return any([shelf.is_visible(context) for shelf in shelves]) or (
@@ -77,8 +73,8 @@ class Shelves(Panel):
         """
         Draw the header row if this panel.
 
-        Parameters:
-            - context (Context)
+        Args:
+            context (Context)
         """
         prefs = preferences.Preferences.this()
         if not prefs.shelves:
@@ -86,7 +82,7 @@ class Shelves(Panel):
 
         row_header = self.layout.row(align=True)
         row_header.alignment = "RIGHT"
-        row_header.operator(operator="shelfmade.add_shelf", text="", icon="ADD")
+        row_header.operator("shelfmade.add_shelf", text="", icon="ADD")
         row_header.operator(
             operator="shelfmade.reload",
             text="",
@@ -94,8 +90,8 @@ class Shelves(Panel):
         )
 
         row_header.prop(
-            data=prefs,
-            property="is_locked",
+            prefs,
+            "is_locked",
             text="",
             icon="LOCKED" if prefs.is_locked else "UNLOCKED",
         )
@@ -104,15 +100,13 @@ class Shelves(Panel):
         """
         Draw the collapsable main body of this panel.
 
-        Parameters:
-            - context (Context)
+        Args:
+            context (Context)
         """
-        draw.shelf_scripts(panel=self, context=context)
+        draw.shelf_scripts(self, context)
 
 
-########################################################################################
 # (Inheriting) shelf panels
-########################################################################################
 
 
 @catalog.bpy_register
@@ -193,6 +187,20 @@ class TextEditorShelves(Shelves):
 
     bl_idname = "SHELFMADE_PT_text_editor_shelves"
     bl_space_type = "TEXT_EDITOR"
+
+    @staticmethod
+    def register():
+        """
+        Add the shelf menu to text editor.
+        """
+        bpy.types.TEXT_HT_header.append(draw.text_editor_shelf_menu)
+
+    @staticmethod
+    def unregister():
+        """
+        Remove the text editor draw function.
+        """
+        bpy.types.TEXT_HT_header.remove(draw.text_editor_shelf_menu)
 
 
 @catalog.bpy_register

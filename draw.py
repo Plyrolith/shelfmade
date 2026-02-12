@@ -1,23 +1,23 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Literal
-    from bpy.types import Context, ID, Panel, Text, UILayout
+
+    from bpy.types import bpy_struct, Context, Operator, Panel, Text, UILayout
+    from bpy.stub_internal.rna_enums import IconItems
+
     from .shelf import Script, Shelf
 
-import bpy
 import re
+
+import bpy
+
 from . import preferences
 
-
-########################################################################################
-# Statics
-########################################################################################
-
-
 # Dictionary containing 'area.ui_type' keys and area icon values
-AREA_TYPES = {
+AREA_TYPES: dict[str, IconItems] = {
     "VIEW_3D": "VIEW3D",
     "IMAGE_EDITOR": "IMAGE",
     "UV": "UV",
@@ -44,18 +44,13 @@ AREA_TYPES = {
 }
 
 
-########################################################################################
-# Draw functions
-########################################################################################
-
-
-def local_scripts(panel: Panel, context: Context):
+def local_scripts(panel: Panel | Operator, context: Context):
     """
     Draw all python script text datablocks found in the currently loaded blend file.
 
-    Parameters:
-        - panel (Panel)
-        - context (Context)
+    Args:
+        panel (Panel | Operator)
+        context (Context)
     """
     layout = panel.layout
 
@@ -78,15 +73,15 @@ def local_scripts(panel: Panel, context: Context):
         ).name = text.name
 
 
-def shelf_visibility(panel: Panel, context: Context, index: int):
+def shelf_visibility(panel: Panel | Operator, context: Context, index: int):
     """
     Draw an interface containing shelf visiblity options. These include settings for
     size, column count and area visibility toggles.
 
-    Parameters:
-        - panel (Panel)
-        - context (Context)
-        - shelf (int): Index of the shelf whose settings are drawn
+    Args:
+        panel (Panel | Operator)
+        context (Context)
+        shelf (int): Index of the shelf whose settings are drawn
     """
     if TYPE_CHECKING:
         shelf: Shelf
@@ -96,11 +91,11 @@ def shelf_visibility(panel: Panel, context: Context, index: int):
 
     # Size and columns
     box_size = layout.box()
-    box_size.prop(data=shelf, property="height", slider=True)
-    box_size.prop(data=shelf, property="columns")
+    box_size.prop(shelf, "height", slider=True)
+    box_size.prop(shelf, "columns")
     row_align = box_size.row()
     row_align.alignment = "CENTER"
-    row_align.prop(data=shelf, property="align")
+    row_align.prop(shelf, "align")
 
     # Area type toggles
     col_areas = layout.column()
@@ -111,19 +106,19 @@ def shelf_visibility(panel: Panel, context: Context, index: int):
 
         # Area type toggle
         property = f"enabled_{area_type.lower()}"
-        row_area.prop(data=shelf, property=property, text="")
-        row_area.prop(data=shelf, property=property, icon=icon, emboss=False)
+        row_area.prop(shelf, property, text="")
+        row_area.prop(shelf, property, icon=icon, emboss=False)
 
 
-def shelf_scripts(panel: Panel, context: Context):
+def shelf_scripts(panel: Panel | Operator, context: Context):
     """
     Draw all shelves that are visible in the current area.
     Wrap their respective script run operators in expander toggle boxes.
     If there are no shelves, draw the 'Add Shelf' operator button instead.
 
-    Parameters:
-        - panel (Panel)
-        - context (Context)
+    Args:
+        panel (Panel | Operator)
+        context (Context)
     """
     if TYPE_CHECKING:
         script: Script
@@ -147,17 +142,16 @@ def shelf_scripts(panel: Panel, context: Context):
 
         # Shelf title & expander
         if show_layout(
-            layout=row_title,
-            data=shelf,
-            property="show_scripts",
+            row_title,
+            shelf,
+            "show_scripts",
             text=shelf.name,
             alignment="LEFT",
-            icon="" if shelf.icon == "NONE" else shelf.icon,
+            icon=shelf.icon,
         ):
             # Don't draw if scripts are empty
             scripts = [s for s in shelf.scripts if s.is_available]
             if scripts:
-
                 # Generate grid flow
                 grid_shelf = box_shelf.grid_flow(
                     columns=shelf.columns,
@@ -171,7 +165,6 @@ def shelf_scripts(panel: Panel, context: Context):
 
                 # Draw script buttons
                 for sc_i, script in enumerate(scripts):
-
                     # Assign to column & set height
                     row_script = columns[sc_i % shelf.columns].row(align=True)
                     row_script.scale_y = shelf.height
@@ -182,13 +175,13 @@ def shelf_scripts(panel: Panel, context: Context):
                         operator="wm.run_script",
                         text=script.display_name,
                         icon=script.icon,
-                    ).filepath = str(shelf.script_path(script=script.name))
+                    ).filepath = str(shelf.script_path(script.name))
 
                     # Menu button
                     if not prefs.is_locked:
                         op_script = row_script.operator_menu_enum(
-                            operator="shelfmade.call_script_menu",
-                            property="mode",
+                            "shelfmade.call_script_menu",
+                            "mode",
                             text="",
                         )
                         op_script.index = sh_i
@@ -204,8 +197,8 @@ def shelf_scripts(panel: Panel, context: Context):
             row_menu = row_title.row()
             row_menu.alignment = "RIGHT"
             row_menu.operator_menu_enum(
-                operator="shelfmade.call_shelf_menu",
-                property="mode",
+                "shelfmade.call_shelf_menu",
+                "mode",
                 text="",
                 icon="COLLAPSEMENU",
             ).index = sh_i
@@ -213,29 +206,29 @@ def shelf_scripts(panel: Panel, context: Context):
 
 def show_layout(
     layout: UILayout,
-    data: ID,
+    data: bpy_struct,
     property: str,
+    *,
     text: str | None = None,
     alignment: Literal["LEFT", "CENTER", "RIGHT"] = "LEFT",
-    icon: str = "",
+    icon: IconItems = "NONE",
 ) -> bool:
     """
     Draw a foldout control in the current UI.
 
-    Parameters:
-        - layout (UILayout): Layout to draw at
-        - data (ID): Host datablock of the bool property that holds the
-          collapse status
-        - property (str): Name of bool property that holds the collapse status
-        - text (str | None): Alternative text for label
-        - alignment (str):
-            - LEFT
-            - CENTER
-            - RIGHT
-        - icon (str): Draw an additional icon
+    Args:
+        layout (UILayout): Layout to draw at
+        data (bpy_struct): Host struct of the bool prop that holds the collapse status
+        property (str): Name of bool property that holds the collapse status
+        text (str | None): Alternative text for label
+        alignment (str):
+          - LEFT
+          - CENTER
+          - RIGHT
+        icon (str): Draw an additional icon
 
     Returns:
-        - bool: Whether the foldout should be drawn or not
+        bool: Whether the foldout should be drawn or not
     """
     enabled = bool(getattr(data, property))
 
@@ -245,8 +238,8 @@ def show_layout(
     row_button = row_main.row(align=True)
     row_button.alignment = "LEFT"
     row_button.prop(
-        data=data,
-        property=property,
+        data,
+        property,
         text=text if alignment == "LEFT" and not icon else "",
         icon_only=False if alignment == "LEFT" or icon else True,
         icon="DOWNARROW_HLT" if enabled else "RIGHTARROW",
@@ -258,31 +251,29 @@ def show_layout(
         row_text = row_main.row(align=True)
         row_text.alignment = alignment
         row_text.prop(
-            data=data,
-            property=property,
-            text=text,
-            icon=icon or "NONE",
-            toggle=True,
-            emboss=False,
+            data, property, text=text, icon=icon or "NONE", toggle=True, emboss=False
         )
 
     return enabled
 
 
-def text_editor_shelf_menu(panel: Panel, context: Context):
+def text_editor_shelf_menu(panel: Panel | Operator, context: Context):
     """
     Draw additional menu buttons the text editor.
 
-    Parameters:
-        - panel (Panel)
-        - context (Context)
+    Args:
+        panel (Panel | Operator)
+        context (Context)
     """
     if TYPE_CHECKING:
         shelves: list[Shelf]
         text: Text
 
     # Get active text
-    text = context.space_data.text
+    try:
+        text = context.space_data.text  # type: ignore
+    except AttributeError:
+        return
     if not text:
         return
 
@@ -292,9 +283,9 @@ def text_editor_shelf_menu(panel: Panel, context: Context):
     filepath = bpy.path.abspath(text.filepath)
     shelves = preferences.Preferences.this().shelves
     for shelf in shelves:
-        if shelf.path_is_in_shelf(path=filepath):
+        if shelf.path_is_in_shelf(filepath):
             layout.operator(
-                operator="text.save",
+                "text.save",
                 text=shelf.name,
                 icon=shelf.icon,
             )
@@ -302,7 +293,7 @@ def text_editor_shelf_menu(panel: Panel, context: Context):
 
     # Draw 'save to shelf' operator
     layout.operator_menu_enum(
-        operator="text.save_text_to_shelf",
-        property="shelf",
+        "text.save_text_to_shelf",
+        "shelf",
         text="To Shelf",
     )
