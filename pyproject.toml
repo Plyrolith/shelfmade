@@ -1,6 +1,6 @@
 [tool.poetry]
-name = "shelfmade"
-version = "1.1.0"
+name = "Shelf Made"
+version = "1.2.0"
 description = "Quick and dirty script shelf panel for Blender"
 authors = ["tristan.weis <mail@tristanweis.com>"]
 license = "GPL-3.0-or-later"
