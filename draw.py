@@ -147,7 +147,7 @@ def shelf_scripts(panel: Panel | Operator, context: Context):
             "show_scripts",
             text=shelf.name,
             alignment="LEFT",
-            icon=shelf.icon,
+            icon=None if shelf.icon == "NONE" else shelf.icon,
         ):
             # Don't draw if scripts are empty
             scripts = [s for s in shelf.scripts if s.is_available]
@@ -211,7 +211,7 @@ def show_layout(
     *,
     text: str | None = None,
     alignment: Literal["LEFT", "CENTER", "RIGHT"] = "LEFT",
-    icon: IconItems = "NONE",
+    icon: IconItems | None = None,
 ) -> bool:
     """
     Draw a foldout control in the current UI.
@@ -225,7 +225,7 @@ def show_layout(
           - LEFT
           - CENTER
           - RIGHT
-        icon (str): Draw an additional icon
+        icon (str | None): Draw an additional icon
 
     Returns:
         bool: Whether the foldout should be drawn or not
@@ -235,13 +235,14 @@ def show_layout(
     row_main = layout.row(align=True)
 
     # Button, add text if left
+    has_icon = icon is not None and icon != "NONE"
     row_button = row_main.row(align=True)
     row_button.alignment = "LEFT"
     row_button.prop(
         data,
         property,
-        text=text if alignment == "LEFT" and not icon else "",
-        icon_only=False if alignment == "LEFT" or icon else True,
+        text=text if alignment == "LEFT" and not has_icon else "",
+        icon_only=False if alignment == "LEFT" or has_icon else True,
         icon="DOWNARROW_HLT" if enabled else "RIGHTARROW",
         emboss=False,
     )
@@ -251,7 +252,12 @@ def show_layout(
         row_text = row_main.row(align=True)
         row_text.alignment = alignment
         row_text.prop(
-            data, property, text=text, icon=icon or "NONE", toggle=True, emboss=False
+            data,
+            property,
+            text=text,
+            icon=icon,
+            toggle=True,
+            emboss=False,
         )
 
     return enabled
