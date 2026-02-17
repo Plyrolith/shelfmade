@@ -175,7 +175,7 @@ def shelf_scripts(panel: Panel | Operator, context: Context):
                         operator="wm.run_script",
                         text=script.display_name,
                         icon=script.icon,
-                    ).filepath = str(shelf.script_path(script.name))
+                    ).filepath = script.get_path().as_posix()
 
                     # Menu button
                     if not prefs.is_locked:

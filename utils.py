@@ -7,11 +7,49 @@ if TYPE_CHECKING:
     from typing import Literal
 
     from bpy.stub_internal.rna_enums import SpaceTypeItems
-    from bpy.types import Area, Context, Text
+    from bpy.types import bpy_struct, Area, Context, Text
 
 from pathlib import Path
 
 import bpy
+
+
+def annotations_to_dict(
+    data: bpy_struct,
+    recursion_depth: int = 16,
+) -> dict[str, bool | int | float | str | list | dict]:
+    """
+    Convert datablock's properties and values to a dictionary for serialization, based
+    on its annotations.
+
+    Args:
+        data (bpy_struct): Datablock to represent as dict
+        recursion_depth (int): Stop after this many nested entries
+
+    Returns:
+        dict[str, bool | int | float | str | list | dict]: JSON-compatible entries
+    """
+    if TYPE_CHECKING:
+        annotation: str
+        prop: str
+
+    if recursion_depth <= 0:
+        return {}
+
+    shelf_dict: dict[str, bool | int | float | str | list | dict] = {}
+    for prop, annotation in data.__annotations__.items():
+        if annotation.startswith("CollectionProperty"):
+            for col in getattr(data, prop):
+                col_dict = annotations_to_dict(col, recursion_depth - 1)
+                shelf_dict.setdefault(prop, []).append(col_dict)  # type: ignore
+            shelf_dict[prop]
+        elif annotation.startswith("PointerProperty"):
+            pointer = getattr(data, prop)
+            shelf_dict[prop] = annotations_to_dict(pointer, recursion_depth - 1)
+        else:
+            shelf_dict[prop] = getattr(data, prop)
+
+    return shelf_dict
 
 
 def find_area_by_type(context: Context, type: str) -> Area | None:
@@ -77,7 +115,7 @@ def open_script_file(filepath: str | PathLike) -> Text:
     texts = bpy.data.texts[:]
 
     # Open script from file path
-    bpy.ops.text.open(filepath=str(filepath))
+    bpy.ops.text.open(filepath=Path(filepath).as_posix())
 
     # Find the newly created text datablock
     for text in bpy.data.texts:

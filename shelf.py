@@ -6,6 +6,7 @@ if TYPE_CHECKING:
     from os import PathLike
     from bpy.types import Context
 
+import json
 from pathlib import Path
 
 import bpy
@@ -18,7 +19,7 @@ from bpy.props import (
 )
 from bpy.types import PropertyGroup
 
-from . import catalog
+from . import catalog, utils
 
 # Update functions
 
@@ -41,7 +42,7 @@ def update_directory(shelf: Shelf, context: Context):
             return
 
         # Re-initialize scripts
-        shelf.initialize_scripts()
+        shelf.initialize()
 
     # Save user preferences
     bpy.ops.wm.save_userpref()
@@ -58,6 +59,17 @@ def update_save_userpref(shelf: Shelf, context: Context):
     bpy.ops.wm.save_userpref()
 
 
+def save_json(self: Script | Shelf, context: Context):
+    """
+    Save to JSON on update, if flag is set.
+
+    Args:
+        shelf (Shelf)
+        context (Context)
+    """
+    self.save_json()
+
+
 # Script snippet class
 
 
@@ -65,10 +77,59 @@ def update_save_userpref(shelf: Shelf, context: Context):
 class Script(PropertyGroup):
     """Representation of a single script within a shelf"""
 
-    display_name: StringProperty(name="Name")
-    icon: StringProperty(name="Icon", default="NONE")
+    display_name: StringProperty(name="Name", update=save_json)
+    icon: StringProperty(name="Icon", default="NONE", update=save_json)
     is_available: BoolProperty(name="Is Available", default=True)
     name: StringProperty(name="File Name")
+
+    def exists(self) -> bool:
+        """
+        Checks whether this script exists and sets its 'is_available' flag.
+
+
+        Returns:
+            bool: Whether this script exists at expected path or not
+        """
+        if self.get_path().exists():
+            self.is_available = True
+            return True
+
+        self.is_available = False
+        return False
+
+    def get_path(self) -> Path:
+        """
+        Generate a path object for this script.
+
+        Returns:
+            Path
+        """
+        return Path(self.get_shelf().directory, self.name)
+
+    def get_shelf(self) -> Shelf:
+        """
+        Return this script's shelf object.
+
+        Returns:
+            Shelf
+        """
+        if TYPE_CHECKING:
+            shelf: Shelf
+
+        shelf = self.rna_ancestors()[-1]  # type: ignore
+        return shelf
+
+    def save_json(self, force: bool = False) -> Path | None:
+        """
+        Save this script's shelf to its JSON file, if conditions allow it.
+
+        Args:
+            force (bool): Save even when conditions aren't met.
+
+        Returns:
+            Path | None: Absolute path to the saved JSON file
+        """
+        return self.get_shelf().save_json(force)
 
 
 # Shelf class
@@ -78,37 +139,49 @@ class Script(PropertyGroup):
 class Shelf(PropertyGroup):
     """Single shelf, directory containing scripts to load and display settings"""
 
-    align: BoolProperty(name="Align Buttons")
-    columns: IntProperty(name="Columns", default=1, min=1, soft_max=8)
+    align: BoolProperty(name="Align Buttons", update=save_json)
+    columns: IntProperty(name="Columns", default=1, min=1, soft_max=8, update=save_json)
     directory: StringProperty(
         name="Directory",
         subtype="DIR_PATH",
         update=update_directory,
     )
 
-    enabled_view_3d: BoolProperty(name="3D Viewport", default=True)
-    enabled_image_editor: BoolProperty(name="Image Editor")
-    enabled_uv: BoolProperty(name="UV Editor")
-    enabled_compositornodetree: BoolProperty(name="Compositor")
-    enabled_texturenodetree: BoolProperty(name="Texture Node Editor")
-    enabled_geometrynodetree: BoolProperty(name="Geometry Node Editor")
-    enabled_shadernodetree: BoolProperty(name="Shader Editor")
-    enabled_sequence_editor: BoolProperty(name="Video Sequencer")
-    enabled_clip_editor: BoolProperty(name="Movie Clip Editor")
-    enabled_dopesheet: BoolProperty(name="Dope Sheet")
-    enabled_timeline: BoolProperty(name="Timeline")
-    enabled_fcurves: BoolProperty(name="Graph Editor")
-    enabled_drivers: BoolProperty(name="Drivers")
-    enabled_nla_editor: BoolProperty(name="Nonlinear Animation")
-    enabled_text_editor: BoolProperty(name="Text Editor")
-    enabled_spreadsheet: BoolProperty(name="Spreadsheet")
+    enabled_view_3d: BoolProperty(name="3D Viewport", default=True, update=save_json)
+    enabled_image_editor: BoolProperty(name="Image Editor", update=save_json)
+    enabled_uv: BoolProperty(name="UV Editor", update=save_json)
+    enabled_compositornodetree: BoolProperty(name="Compositor", update=save_json)
+    enabled_texturenodetree: BoolProperty(name="Texture Node Editor", update=save_json)
+    enabled_geometrynodetree: BoolProperty(
+        name="Geometry Node Editor",
+        update=save_json,
+    )
+    enabled_shadernodetree: BoolProperty(name="Shader Editor", update=save_json)
+    enabled_sequence_editor: BoolProperty(name="Video Sequencer", update=save_json)
+    enabled_clip_editor: BoolProperty(name="Movie Clip Editor", update=save_json)
+    enabled_dopesheet: BoolProperty(name="Dope Sheet", update=save_json)
+    enabled_timeline: BoolProperty(name="Timeline", update=save_json)
+    enabled_fcurves: BoolProperty(name="Graph Editor", update=save_json)
+    enabled_drivers: BoolProperty(name="Drivers", update=save_json)
+    enabled_nla_editor: BoolProperty(name="Nonlinear Animation", update=save_json)
+    enabled_text_editor: BoolProperty(name="Text Editor", update=save_json)
+    enabled_spreadsheet: BoolProperty(name="Spreadsheet", update=save_json)
 
-    height: FloatProperty(name="Button Height", default=1.0, min=0.5, soft_max=8.0)
-    icon: StringProperty(name="Icon", default="NONE")
+    height: FloatProperty(
+        name="Button Height",
+        default=1.0,
+        min=0.5,
+        soft_max=8.0,
+        update=save_json,
+    )
+    icon: StringProperty(name="Icon", default="NONE", update=save_json)
     is_available: BoolProperty(name="Is Available")
-    name: StringProperty(name="Name")
+    is_locked: BoolProperty(name="Locked")
+    json_filename: StringProperty(name="JSON Filename", default=".shelfmade")
+    name: StringProperty(name="Name", update=save_json)
     scripts: CollectionProperty(type=Script, name="Scripts")
     show_scripts: BoolProperty(name="Show Scripts", default=True)
+    use_json_file: BoolProperty(name="Save to JSON", default=True, update=save_json)
 
     def exists(self) -> bool:
         """
@@ -124,7 +197,7 @@ class Shelf(PropertyGroup):
         self.is_available = False
         return False
 
-    def initialize_scripts(self):
+    def initialize(self):
         """
         Scan the script directory and initiate a script object for each script found.
         """
@@ -142,7 +215,16 @@ class Shelf(PropertyGroup):
 
         self.is_available = True
 
+        # Read from JSON config
+        if self.use_json_file:
+            self.load_json()
+
+        # Set name
+        if not self.name:
+            self.name = Path(self.directory).name
+
         # Iterate directory and find python scripts
+        has_new_scripts = False
         for script_file in sorted(Path(self.directory).iterdir()):
             if not script_file.suffix == ".py":
                 continue
@@ -159,8 +241,13 @@ class Shelf(PropertyGroup):
                 script = self.scripts.add()
                 script.name = script_file.name
                 script.display_name = script_file.stem
+                has_new_scripts = True
 
-    def is_visible(self, context: Context) -> bool:
+        # Save new sscripts to JSON
+        if has_new_scripts:
+            self.save_json()
+
+    def is_visible(self, context: Context):
         """
         Returns:
             bool: Whether this shelf should be drawn within the given context
@@ -181,6 +268,61 @@ class Shelf(PropertyGroup):
 
         return False
 
+    def load_json(self) -> dict[str, bool | int | float | str | list | dict]:
+        """
+        Load this shelve's JSON file and parse data.
+
+        Returns:
+            dict
+        """
+        if TYPE_CHECKING:
+            script: Script
+            shelf_dict: dict[str, bool | int | float | str | list | dict]
+            script_dict: dict[str, bool | int | float | str]
+
+        file_name = self.json_filename
+        if not file_name:
+            file_name = ".shelfmade"
+
+        json_path = Path(self.directory, file_name).with_suffix(".json")
+
+        # Lock to avoid save trigger
+        exception = None
+        is_locked = self.is_locked
+        self.is_locked = True
+
+        with open(json_path, "r") as file:
+            shelf_dict = json.load(file)
+            try:
+                for shelf_key, shelf_value in shelf_dict.items():
+                    if shelf_key == "scripts":
+                        for script_dict in shelf_value:  # type: ignore
+                            # Find script by file name
+                            script_name = script_dict.pop("name")
+                            script = self.scripts.get(script_name)
+
+                            # Create a new one
+                            if not script:
+                                script = self.scripts.add()
+                                script.name = script_name
+
+                            # Set script props
+                            for script_key, script_value in script_dict.items():
+                                setattr(script, script_key, script_value)
+                    else:
+                        # Set shelf props
+                        setattr(self, shelf_key, shelf_value)
+
+            except Exception as e:
+                exception = e
+
+        # Restore previous locked state
+        self.is_locked = is_locked
+        if exception:
+            raise exception
+
+        return shelf_dict
+
     def path_is_in_shelf(self, path: str | PathLike) -> bool:
         """
         Check if given path is located within the shelf directory.
@@ -193,36 +335,55 @@ class Shelf(PropertyGroup):
         """
         return self.directory in Path(path).resolve().as_posix()
 
-    def script_exists(self, key: int | str) -> bool:
+    def save_json(self, force: bool = False) -> Path | None:
         """
-        Checks whether a script exists and sets its 'is_available' flag.
+        Save this shelf to its JSON file, if conditions allow it.
 
         Args:
-            script (int | str): Script index or file name
+            force (bool): Save even when conditions aren't met.
 
         Returns:
-            bool: Whether this script exists at expected path or not
+            Path | None: Absolute path to the saved JSON file
+        """
+        if not force and (
+            not self.is_available or not self.use_json_file or self.is_locked
+        ):
+            return
+
+        file_name = self.json_filename
+        if not file_name:
+            file_name = ".shelfmade"
+
+        json_path = Path(self.directory, file_name).with_suffix(".json")
+        shelf_dict = self.to_dict()
+
+        with open(json_path, "w") as file:
+            json.dump(shelf_dict, file, indent=2)
+
+        return json_path
+
+    def to_dict(self) -> dict[str, bool | int | float | str | list | dict]:
+        """
+        Convert this shelf into a dictionary object.
+
+        Returns:
+            dict[str, bool | int | float | str]
         """
         if TYPE_CHECKING:
-            script: Script
+            script_dict: dict[str, bool | str]
 
-        script = self.scripts[key]
+        shelf_dict = utils.annotations_to_dict(self)
+        for shelf_prop in (
+            "directory",
+            "is_available",
+            "is_locked",
+            "json_filename",
+            "show_scripts",
+            "use_json_file",
+        ):
+            shelf_dict.pop(shelf_prop, None)
+        for script_dict in shelf_dict.get("scripts", []):  # type: ignore
+            for script_prop in ("is_available",):
+                script_dict.pop(script_prop, None)
 
-        if self.script_path(key).exists():
-            script.is_available = True
-            return True
-
-        script.is_available = False
-        return False
-
-    def script_path(self, key: int | str) -> Path:
-        """
-        Generate a path object for given script.
-
-        Args:
-            key (int | str): Script index or file name
-
-        Returns:
-            Path
-        """
-        return Path(self.directory, self.scripts[key].name)
+        return shelf_dict

@@ -85,7 +85,9 @@ class Preferences(AddonPreferences):
             ).index = i
 
             # Path
-            row_shelf.prop(shelf, "directory", text="")
+            split_path = row_shelf.split(factor=0.8, align=True)
+            split_path.prop(shelf, "directory", text="")
+            split_path.prop(shelf, "use_json_file", text="JSON", toggle=True)
 
             # Move
             row_move = row_shelf.row(align=True)
@@ -127,7 +129,7 @@ class Preferences(AddonPreferences):
 
         # Scan all shelf directories
         for shelf in self.shelves:
-            shelf.initialize_scripts()
+            shelf.initialize()
 
     @staticmethod
     def register():

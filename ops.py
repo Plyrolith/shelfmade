@@ -111,6 +111,11 @@ class SHELFMADE_OT_AddShelf(Operator, io_utils.ImportHelper):
         name="Make Available In All Editors",
         description="If disabled, the shelf will be visible in the 3D viewport only",
     )
+    use_json: BoolProperty(
+        name="Use JSON Config",
+        description="Store this shelve's configuration in a JSON file",
+        default=True,
+    )
 
     def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
         """
@@ -148,7 +153,10 @@ class SHELFMADE_OT_AddShelf(Operator, io_utils.ImportHelper):
         # Set its directory and name
         if self.directory:
             shelf.directory = self.directory
-            shelf.name = Path(self.directory).name
+
+        # Set JSON config
+        if self.use_json:
+            shelf.use_json_file = True
 
         # Set editor visibility
         if self.add_to_all_editors:
@@ -428,7 +436,11 @@ class SHELFMADE_OT_MoveScript(Operator):
             set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
 
         """
-        scripts = preferences.Preferences.this().shelves[self.index].scripts
+        if TYPE_CHECKING:
+            shelf: shelf.Shelf
+
+        shelf = preferences.Preferences.this().shelves[self.index]
+        scripts = shelf.scripts
         current_index = scripts.find(self.script)
 
         # Get new index
@@ -440,6 +452,9 @@ class SHELFMADE_OT_MoveScript(Operator):
 
         # Move
         scripts.move(current_index, new_index)
+
+        # Save to JSON
+        shelf.save_json()
 
         # Save user preferences
         bpy.ops.wm.save_userpref()
@@ -649,7 +664,6 @@ class SHELFMADE_OT_RemoveShelf(Operator):
     bl_options = {"INTERNAL"}
 
     index: IntProperty(name="Shelf Index")
-    script: StringProperty(name="Script Name")
 
     def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
         """
@@ -1020,11 +1034,11 @@ class SHELFMADE_OT_SaveTextToShelf(Operator):
 
         # Save text
         shelf = preferences.Preferences.this().shelves[int(self.shelf)]
-        filepath = str(Path(shelf.directory, text.name))
+        filepath = Path(shelf.directory, text.name).as_posix()
         bpy.ops.text.save_as("EXEC_DEFAULT", filepath=filepath)
 
         # Reload shelf
-        shelf.initialize_scripts()
+        shelf.initialize()
 
         # Save user preferences
         bpy.ops.wm.save_userpref()
