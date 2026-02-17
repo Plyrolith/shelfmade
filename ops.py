@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Literal
 
-    from bpy.types import Context, Event, SpaceTextEditor, Text
+    from bpy.types import Context, Event, OperatorProperties, SpaceTextEditor, Text
 
     from . import shelf
 
@@ -100,10 +100,9 @@ def enum_icons(
 
 @catalog.bpy_register
 class SHELFMADE_OT_AddShelf(Operator, io_utils.ImportHelper):
-    """Add a directory to be included when scanning for scripts"""
-
     bl_idname = "shelfmade.add_shelf"
     bl_label = "Add Shelf"
+    bl_description = "Add a directory to be included when scanning for scripts"
     bl_options = {"INTERNAL"}
 
     directory: StringProperty(name="Directory", subtype="DIR_PATH")
@@ -171,10 +170,9 @@ class SHELFMADE_OT_AddShelf(Operator, io_utils.ImportHelper):
 
 @catalog.bpy_register
 class SHELFMADE_OT_CleanShelves(Operator):
-    """Clean data for all missing shelves and scripts"""
-
     bl_idname = "shelfmade.clean_shelves"
     bl_label = "Clean Unavailable Shelves & Scripts"
+    bl_description = "Clean data for all missing shelves and scripts"
     bl_options = {"INTERNAL"}
 
     def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
@@ -217,8 +215,6 @@ class SHELFMADE_OT_CleanShelves(Operator):
 
 @catalog.bpy_register
 class SHELFMADE_OT_CallScriptMenu(Operator):
-    """Open the menu for this script"""
-
     bl_idname = "shelfmade.call_script_menu"
     bl_label = "Call Script Menu"
     bl_options = {"INTERNAL"}
@@ -227,14 +223,40 @@ class SHELFMADE_OT_CallScriptMenu(Operator):
     script: StringProperty(name="Script Name")
     mode: EnumProperty(
         items=(
-            ("RENAME", "Rename", "Rename this script", "FONT_DATA", 0),
-            ("ICON", "Set Icon", "Set this script's icon", "BRUSH_DATA", 1),
-            ("OPEN", "Open", "Open this script in the editor", "GREASEPENCIL", 2),
+            ("RENAME", "Rename...", "Rename this script", "BLANK1", 0),
+            ("ICON", "Set Icon...", "Set this script's icon", "BLANK1", 1),
+            ("OPEN", "Open", "Open this script in the editor", "BLANK1", 2),
             ("UP", "Move Up", "Move this script up in the list", "TRIA_UP", 3),
             ("DOWN", "Move Down", "Move this script down in the list", "TRIA_DOWN", 4),
         ),
         name="Mode",
     )
+
+    @classmethod
+    def description(cls, context: Context, properties: OperatorProperties) -> str:
+        """
+        Generate a description for the menu.
+
+        Args:
+            context (Context)
+            properties (OperatorProperties)
+
+        Returns:
+            str: Operator description
+        """
+        match properties.mode:
+            case "RENAME":
+                return SHELFMADE_OT_RenameScript.bl_description
+            case "ICON":
+                return SHELFMADE_OT_SetScriptIcon.bl_description
+            case "OPEN":
+                return SHELFMADE_OT_OpenScript.bl_description
+            case "DOWN":
+                return SHELFMADE_OT_MoveScript.bl_description + ": Down"
+            case "UP":
+                return SHELFMADE_OT_MoveScript.bl_description + ": Up"
+            case _:
+                return "Open the menu for this script"
 
     def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
         """
@@ -248,45 +270,45 @@ class SHELFMADE_OT_CallScriptMenu(Operator):
             set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
 
         """
-        if self.mode == "RENAME":
-            bpy.ops.shelfmade.rename_script(  # type: ignore
-                "INVOKE_DEFAULT",
-                index=self.index,
-                script=self.script,
-            )
+        if TYPE_CHECKING:
+            script: shelf.Script
 
-        elif self.mode == "ICON":
-            bpy.ops.shelfmade.set_script_icon(  # type: ignore
-                "INVOKE_DEFAULT",
-                index=self.index,
-                script=self.script,
-            )
+        match self.mode:
+            case "RENAME":
+                bpy.ops.shelfmade.rename_script(  # type: ignore
+                    "INVOKE_DEFAULT",
+                    index=self.index,
+                    script=self.script,
+                )
 
-        elif self.mode == "OPEN":
-            bpy.ops.wm.open_script(  # type: ignore
-                "EXEC_DEFAULT",
-                filepath=str(
-                    preferences.Preferences.this()
-                    .shelves[self.index]
-                    .script_path(script=self.script)
-                ),
-            )
+            case "ICON":
+                bpy.ops.shelfmade.set_script_icon(  # type: ignore
+                    "INVOKE_DEFAULT",
+                    index=self.index,
+                    script=self.script,
+                )
 
-        elif self.mode in {"DOWN", "UP"}:
-            bpy.ops.shelfmade.move_script(  # type: ignore
-                "EXEC_DEFAULT",
-                index=self.index,
-                script=self.script,
-                direction=self.mode,
-            )
+            case "OPEN":
+                shelf = preferences.Preferences.this().shelves[self.index]
+                script = shelf.scripts[self.script]
+                bpy.ops.wm.open_script(  # type: ignore
+                    "EXEC_DEFAULT",
+                    filepath=script.get_path().as_posix(),
+                )
+
+            case "DOWN" | "UP":
+                bpy.ops.shelfmade.move_script(  # type: ignore
+                    "EXEC_DEFAULT",
+                    index=self.index,
+                    script=self.script,
+                    direction=self.mode,
+                )
 
         return {"FINISHED"}
 
 
 @catalog.bpy_register
 class SHELFMADE_OT_CallShelfMenu(Operator):
-    """Call the menu for this shelf"""
-
     bl_idname = "shelfmade.call_shelf_menu"
     bl_label = "Call Shelf Menu"
     bl_options = {"INTERNAL"}
@@ -294,16 +316,52 @@ class SHELFMADE_OT_CallShelfMenu(Operator):
     index: IntProperty(name="Shelf Index")
     mode: EnumProperty(
         items=(
-            ("RENAME", "Rename", "Rename this shelf", "FONT_DATA", 0),
-            ("ICON", "Set Icon", "Set this shelf's icon", "BRUSH_DATA", 1),
-            ("VISIBILITY", "Display Options", "Edit display options", "VIS_SEL_11", 2),
-            ("OPEN", "Open Folder", "Open this shelf's folder", "FILE_FOLDER", 3),
+            ("RENAME", "Rename...", "Rename this shelf", "BLANK1", 0),
+            ("ICON", "Set Icon...", "Set this shelf's icon", "BLANK1", 1),
+            (
+                "VISIBILITY",
+                "Display Options...",
+                "Edit display options",
+                "VIS_SEL_11",
+                2,
+            ),
+            ("OPEN", "Open Folder", "Open this shelf's folder", "BLANK1", 3),
             ("REMOVE", "Remove", "Remove this shelf", "X", 4),
             ("UP", "Move Up", "Move this shelf up in the list", "TRIA_UP", 5),
             ("DOWN", "Move Down", "Move this shelf down in the list", "TRIA_DOWN", 6),
         ),
         name="Mode",
     )
+
+    @classmethod
+    def description(cls, context: Context, properties: OperatorProperties) -> str:
+        """
+        Generate a description for the menu.
+
+        Args:
+            context (Context)
+            properties (OperatorProperties)
+
+        Returns:
+            str: Operator description
+        """
+        match properties.mode:
+            case "RENAME":
+                return SHELFMADE_OT_RenameShelf.bl_description
+            case "ICON":
+                return SHELFMADE_OT_SetShelfIcon.bl_description
+            case "VISIBILITY":
+                return SHELFMADE_OT_EditShelfVisibility.bl_description
+            case "OPEN":
+                return "Open this shelf's folder in the system file explorer"
+            case "REMOVE":
+                return SHELFMADE_OT_RemoveShelf.bl_description
+            case "DOWN":
+                return SHELFMADE_OT_MoveShelf.bl_description + ": Down"
+            case "UP":
+                return SHELFMADE_OT_MoveShelf.bl_description + ": Up"
+            case _:
+                return "Open the menu for this shelf"
 
     def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
         """
@@ -317,50 +375,52 @@ class SHELFMADE_OT_CallShelfMenu(Operator):
             set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
 
         """
-        if self.mode == "RENAME":
-            bpy.ops.shelfmade.rename_shelf(  # type: ignore
-                "INVOKE_DEFAULT",
-                index=self.index,
-            )
+        match self.mode:
+            case "RENAME":
+                bpy.ops.shelfmade.rename_shelf(  # type: ignore
+                    "INVOKE_DEFAULT",
+                    index=self.index,
+                )
 
-        elif self.mode == "ICON":
-            bpy.ops.shelfmade.set_shelf_icon(  # type: ignore
-                "INVOKE_DEFAULT",
-                index=self.index,
-            )
+            case "ICON":
+                bpy.ops.shelfmade.set_shelf_icon(  # type: ignore
+                    "INVOKE_DEFAULT",
+                    index=self.index,
+                )
 
-        elif self.mode == "VISIBILITY":
-            bpy.ops.shelfmade.edit_shelf_visibility(  # type: ignore
-                "INVOKE_DEFAULT",
-                index=self.index,
-            )
+            case "VISIBILITY":
+                bpy.ops.shelfmade.edit_shelf_visibility(  # type: ignore
+                    "INVOKE_DEFAULT",
+                    index=self.index,
+                )
 
-        elif self.mode == "OPEN":
-            bpy.ops.wm.path_open(
-                filepath=preferences.Preferences.this().shelves[self.index].directory
-            )
+            case "OPEN":
+                bpy.ops.wm.path_open(
+                    filepath=preferences.Preferences.this()
+                    .shelves[self.index]
+                    .directory
+                )
 
-        elif self.mode == "REMOVE":
-            bpy.ops.shelfmade.remove_shelf(  # type: ignore
-                "INVOKE_DEFAULT",
-                index=self.index,
-            )
+            case "REMOVE":
+                bpy.ops.shelfmade.remove_shelf(  # type: ignore
+                    "INVOKE_DEFAULT",
+                    index=self.index,
+                )
 
-        elif self.mode in {"DOWN", "UP"}:
-            bpy.ops.shelfmade.move_shelf(  # type: ignore
-                index=self.index,
-                direction=self.mode,
-            )
+            case "DOWN" | "UP":
+                bpy.ops.shelfmade.move_shelf(  # type: ignore
+                    index=self.index,
+                    direction=self.mode,
+                )
 
         return {"FINISHED"}
 
 
 @catalog.bpy_register
 class SHELFMADE_OT_EditShelfVisibility(Operator):
-    """Edit this shelf's panel visibility"""
-
     bl_idname = "shelfmade.edit_shelf_visibility"
     bl_label = "Edit Shelf Visibility"
+    bl_description = "Open shelf's panel visibility & display settings"
     bl_options = {"INTERNAL"}
 
     index: IntProperty(name="Shelf Index")
@@ -408,10 +468,9 @@ class SHELFMADE_OT_EditShelfVisibility(Operator):
 
 @catalog.bpy_register
 class SHELFMADE_OT_MoveScript(Operator):
-    """Move this script up/down in its shelf"""
-
     bl_idname = "shelfmade.move_script"
     bl_label = "Move Script"
+    bl_description = "Move this script's position within its shelf"
     bl_options = {"INTERNAL"}
 
     index: IntProperty(name="Shelf Index")
@@ -464,10 +523,9 @@ class SHELFMADE_OT_MoveScript(Operator):
 
 @catalog.bpy_register
 class SHELFMADE_OT_MoveShelf(Operator):
-    """Move this shelf up/down in the shelves list"""
-
     bl_idname = "shelfmade.move_shelf"
     bl_label = "Move Shelf"
+    bl_description = "Move this shelf's position within the shelf list"
     bl_options = {"INTERNAL"}
 
     index: IntProperty(name="Shelf Index")
@@ -534,10 +592,9 @@ class SHELFMADE_OT_MoveShelf(Operator):
 
 @catalog.bpy_register
 class SHELFMADE_OT_OpenScript(Operator, io_utils.ImportHelper):
-    """Open this Python script file in the text editor"""
-
     bl_idname = "wm.open_script"
     bl_label = "Open Script"
+    bl_description = "Open this Python script file in the text editor"
     bl_options = {"UNDO"}
 
     filepath: StringProperty(name="File Path", subtype="FILE_PATH")
@@ -611,10 +668,9 @@ class SHELFMADE_OT_OpenScript(Operator, io_utils.ImportHelper):
 
 @catalog.bpy_register
 class SHELFMADE_OT_Reload(Operator):
-    """Re-scan all shelves and build script lists"""
-
     bl_idname = "shelfmade.reload"
     bl_label = "Reload Shelves & Scripts"
+    bl_description = "Re-scan all shelves and sync scripts"
     bl_options = {"INTERNAL"}
 
     @classmethod
@@ -657,10 +713,9 @@ class SHELFMADE_OT_Reload(Operator):
 
 @catalog.bpy_register
 class SHELFMADE_OT_RemoveShelf(Operator):
-    """Remove a shelf"""
-
     bl_idname = "shelfmade.remove_shelf"
     bl_label = "Remove Shelf"
+    bl_description = "Remove this shelf (does not delete any files)"
     bl_options = {"INTERNAL"}
 
     index: IntProperty(name="Shelf Index")
@@ -709,10 +764,9 @@ class SHELFMADE_OT_RemoveShelf(Operator):
 
 @catalog.bpy_register
 class SHELFMADE_OT_RenameScript(Operator):
-    """Change the display name of this script"""
-
     bl_idname = "shelfmade.rename_script"
     bl_label = "Rename Script"
+    bl_description = "Change the display name of this script"
     bl_options = {"INTERNAL"}
 
     index: IntProperty(name="Shelf Index")
@@ -807,10 +861,9 @@ class SHELFMADE_OT_RenameScript(Operator):
 
 @catalog.bpy_register
 class SHELFMADE_OT_RenameShelf(Operator):
-    """Change the display name of this shelf"""
-
     bl_idname = "shelfmade.rename_shelf"
     bl_label = "Rename Shelf"
+    bl_description = "Change the display name of this shelf"
     bl_options = {"INTERNAL"}
 
     index: IntProperty(name="Shelf Index")
@@ -877,13 +930,27 @@ class SHELFMADE_OT_RenameShelf(Operator):
 
 @catalog.bpy_register
 class SHELFMADE_OT_RunScript(Operator, io_utils.ImportHelper):
-    """Execute this Python script file"""
-
     bl_idname = "wm.run_script"
     bl_label = "Run Script"
     bl_options = {"UNDO"}
 
     filepath: StringProperty(name="File Path", subtype="FILE_PATH")
+
+    @classmethod
+    def description(cls, context: Context, properties: OperatorProperties) -> str:
+        """
+        Generate a description from the filepath property.
+
+        Args:
+            context (Context)
+            properties (OperatorProperties)
+
+        Returns:
+            str: Operator description
+        """
+        if properties.filepath:
+            return f"Execute Python script: {Path(properties.filepath).name}"
+        return "Execute a Python script"
 
     def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
         """
@@ -947,10 +1014,9 @@ class SHELFMADE_OT_RunScript(Operator, io_utils.ImportHelper):
 
 @catalog.bpy_register
 class SHELFMADE_OT_RunText(Operator):
-    """Execute this local text datablock"""
-
     bl_idname = "wm.run_text"
     bl_label = "Run Text Datablock"
+    bl_description = "Execute this local text datablock"
     bl_options = {"UNDO"}
 
     name: StringProperty(name="Text Name")
@@ -975,10 +1041,9 @@ class SHELFMADE_OT_RunText(Operator):
 
 @catalog.bpy_register
 class SHELFMADE_OT_SaveTextToShelf(Operator):
-    """Save this text datablock to a shelf directory"""
-
     bl_idname = "text.save_text_to_shelf"
     bl_label = "Save To Shelf"
+    bl_description = "Save this text datablock to a shelf directory"
     bl_options = {"INTERNAL"}
 
     shelf: EnumProperty(items=enum_shelves, name="Shelf")  # type: ignore
@@ -1048,10 +1113,9 @@ class SHELFMADE_OT_SaveTextToShelf(Operator):
 
 @catalog.bpy_register
 class SHELFMADE_OT_SetScriptIcon(Operator):
-    """Select an icon for this script"""
-
     bl_idname = "shelfmade.set_script_icon"
     bl_label = "Set Script Icon"
+    bl_description = "Select an icon for this script from Blender's internal icon set"
     bl_options = {"INTERNAL"}
     bl_property = "icon"
 
@@ -1117,10 +1181,9 @@ class SHELFMADE_OT_SetScriptIcon(Operator):
 
 @catalog.bpy_register
 class SHELFMADE_OT_SetShelfIcon(Operator):
-    """Select an icon for this shelf"""
-
     bl_idname = "shelfmade.set_shelf_icon"
     bl_label = "Set Shelf Icon"
+    bl_description = "Select an icon for this shelf from Blender's internal icon set"
     bl_options = {"INTERNAL"}
     bl_property = "icon"
 
