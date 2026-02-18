@@ -18,8 +18,16 @@ class Preferences(AddonPreferences):
 
     bl_idname = __package__ or "shelfmade"
 
-    is_locked: BoolProperty(name="(Un)Lock Shelves", update=shelf.update_save_userpref)
-    shelves: CollectionProperty(type=shelf.Shelf, name="Directories")
+    is_locked: BoolProperty(
+        name="(Un)Lock Shelves",
+        description="Lock all shelves and hide their menus from the UI",
+        update=shelf.update_save_userpref,
+    )
+    shelves: CollectionProperty(
+        type=shelf.Shelf,
+        name="Directories",
+        description="Shelves, representing directories that contain Python scripts",
+    )
 
     def clean(self):
         """

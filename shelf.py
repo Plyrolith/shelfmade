@@ -59,7 +59,7 @@ def update_save_userpref(shelf: Shelf, context: Context):
     bpy.ops.wm.save_userpref()
 
 
-def save_json(self: Script | Shelf, context: Context):
+def update_save_json(self: Script | Shelf, context: Context):
     """
     Save to JSON on update, if flag is set.
 
@@ -77,10 +77,26 @@ def save_json(self: Script | Shelf, context: Context):
 class Script(PropertyGroup):
     """Representation of a single script within a shelf"""
 
-    display_name: StringProperty(name="Name", update=save_json)
-    icon: StringProperty(name="Icon", default="NONE", update=save_json)
-    is_available: BoolProperty(name="Is Available", default=True)
-    name: StringProperty(name="File Name")
+    display_name: StringProperty(
+        name="Name",
+        description="The name displayed in the UI",
+        update=update_save_json,
+    )
+    icon: StringProperty(
+        name="Icon",
+        default="NONE",
+        description="The icon representing this script",
+        update=update_save_json,
+    )
+    is_available: BoolProperty(
+        name="Is Available",
+        description="Whether this script is accessible or not",
+        default=True,
+    )
+    name: StringProperty(
+        name="File Name",
+        description="File name of the Python script within the shelf directory",
+    )
 
     def exists(self) -> bool:
         """
@@ -139,49 +155,156 @@ class Script(PropertyGroup):
 class Shelf(PropertyGroup):
     """Single shelf, directory containing scripts to load and display settings"""
 
-    align: BoolProperty(name="Align Buttons", update=save_json)
-    columns: IntProperty(name="Columns", default=1, min=1, soft_max=8, update=save_json)
+    align: BoolProperty(
+        name="Align Buttons",
+        description="Align all buttons and remove all padding for the whole shelf",
+        update=update_save_json,
+    )
+    columns: IntProperty(
+        name="Columns",
+        description="Split the shelf's buttons into this number of columns",
+        default=1,
+        min=1,
+        soft_max=8,
+        update=update_save_json,
+    )
     directory: StringProperty(
         name="Directory",
+        description="The directory for this shelf, containing Python scripts",
         subtype="DIR_PATH",
         update=update_directory,
     )
 
-    enabled_view_3d: BoolProperty(name="3D Viewport", default=True, update=save_json)
-    enabled_image_editor: BoolProperty(name="Image Editor", update=save_json)
-    enabled_uv: BoolProperty(name="UV Editor", update=save_json)
-    enabled_compositornodetree: BoolProperty(name="Compositor", update=save_json)
-    enabled_texturenodetree: BoolProperty(name="Texture Node Editor", update=save_json)
+    enabled_view_3d: BoolProperty(
+        name="3D Viewport",
+        description="Whether to show this shelf in the 3D viewport",
+        default=True,
+        update=update_save_json,
+    )
+    enabled_image_editor: BoolProperty(
+        name="Image Editor",
+        description="Whether to show this shelf in the image editor",
+        update=update_save_json,
+    )
+    enabled_uv: BoolProperty(
+        name="UV Editor",
+        description="Whether to show this shelf in the UV editor",
+        update=update_save_json,
+    )
+    enabled_compositornodetree: BoolProperty(
+        name="Compositor",
+        description="Whether to show this shelf in the compositor",
+        update=update_save_json,
+    )
+    enabled_texturenodetree: BoolProperty(
+        name="Texture Node Editor",
+        description="Whether to show this shelf in the texture node editor",
+        update=update_save_json,
+    )
     enabled_geometrynodetree: BoolProperty(
         name="Geometry Node Editor",
-        update=save_json,
+        description="Whether to show this shelf in the geomoetry node editor",
+        update=update_save_json,
     )
-    enabled_shadernodetree: BoolProperty(name="Shader Editor", update=save_json)
-    enabled_sequence_editor: BoolProperty(name="Video Sequencer", update=save_json)
-    enabled_clip_editor: BoolProperty(name="Movie Clip Editor", update=save_json)
-    enabled_dopesheet: BoolProperty(name="Dope Sheet", update=save_json)
-    enabled_timeline: BoolProperty(name="Timeline", update=save_json)
-    enabled_fcurves: BoolProperty(name="Graph Editor", update=save_json)
-    enabled_drivers: BoolProperty(name="Drivers", update=save_json)
-    enabled_nla_editor: BoolProperty(name="Nonlinear Animation", update=save_json)
-    enabled_text_editor: BoolProperty(name="Text Editor", update=save_json)
-    enabled_spreadsheet: BoolProperty(name="Spreadsheet", update=save_json)
+    enabled_shadernodetree: BoolProperty(
+        name="Shader Editor",
+        description="Whether to show this shelf in the shader editor",
+        update=update_save_json,
+    )
+    enabled_sequence_editor: BoolProperty(
+        name="Video Sequencer",
+        description="Whether to show this shelf in the sequence editor",
+        update=update_save_json,
+    )
+    enabled_clip_editor: BoolProperty(
+        name="Movie Clip Editor",
+        description="Whether to show this shelf in the video clip editor",
+        update=update_save_json,
+    )
+    enabled_dopesheet: BoolProperty(
+        name="Dope Sheet",
+        description="Whether to show this shelf in the dope sheet",
+        update=update_save_json,
+    )
+    enabled_timeline: BoolProperty(
+        name="Timeline",
+        description="Whether to show this shelf in the timeline",
+        update=update_save_json,
+    )
+    enabled_fcurves: BoolProperty(
+        name="Graph Editor",
+        description="Whether to show this shelf in the graph editor",
+        update=update_save_json,
+    )
+    enabled_drivers: BoolProperty(
+        name="Drivers",
+        description="Whether to show this shelf in the drivers editor",
+        update=update_save_json,
+    )
+    enabled_nla_editor: BoolProperty(
+        name="Nonlinear Animation",
+        description="Whether to show this shelf in the NLA editor",
+        update=update_save_json,
+    )
+    enabled_text_editor: BoolProperty(
+        name="Text Editor",
+        description="Whether to show this shelf in the text editor",
+        update=update_save_json,
+    )
+    enabled_spreadsheet: BoolProperty(
+        name="Spreadsheet",
+        description="Whether to show this shelf in the spreadsheet",
+        update=update_save_json,
+    )
 
     height: FloatProperty(
         name="Button Height",
+        description="Global height of all script buttons",
         default=1.0,
         min=0.5,
         soft_max=8.0,
-        update=save_json,
+        update=update_save_json,
     )
-    icon: StringProperty(name="Icon", default="NONE", update=save_json)
-    is_available: BoolProperty(name="Is Available")
-    is_locked: BoolProperty(name="Locked")
-    json_filename: StringProperty(name="JSON Filename", default=".shelfmade")
-    name: StringProperty(name="Name", update=save_json)
-    scripts: CollectionProperty(type=Script, name="Scripts")
-    show_scripts: BoolProperty(name="Show Scripts", default=True)
-    use_json_file: BoolProperty(name="Save to JSON", default=True, update=save_json)
+    icon: StringProperty(
+        name="Icon",
+        default="NONE",
+        description="The icon representing this shelf",
+        update=update_save_json,
+    )
+    is_available: BoolProperty(
+        name="Is Available",
+        description="Whether the shelf's directory is accessible or not",
+    )
+    is_locked: BoolProperty(
+        name="Locked",
+        description="Whether this shelf is locked, preventing any changes",
+    )
+    json_filename: StringProperty(
+        name="JSON Filename",
+        description="Name of the JSON file where this shelf's data should be stored in",
+        default=".shelfmade",
+    )
+    name: StringProperty(
+        name="Name",
+        description="Name of this shelf, will be used for the UI",
+        update=update_save_json,
+    )
+    scripts: CollectionProperty(
+        type=Script,
+        name="Scripts",
+        description="This shelf's script objects",
+    )
+    show_scripts: BoolProperty(
+        name="Show Scripts",
+        description="Expand this shelf",
+        default=True,
+    )
+    use_json_file: BoolProperty(
+        name="Save to JSON",
+        description="Save this shelf to a JSON file or in Blender's preferences only",
+        default=True,
+        update=update_save_json,
+    )
 
     def exists(self) -> bool:
         """

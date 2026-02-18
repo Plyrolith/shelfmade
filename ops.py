@@ -219,8 +219,8 @@ class SHELFMADE_OT_CallScriptMenu(Operator):
     bl_label = "Call Script Menu"
     bl_options = {"INTERNAL"}
 
-    index: IntProperty(name="Shelf Index")
-    script: StringProperty(name="Script Name")
+    index: IntProperty(name="Shelf Index", description="Position of the script's shelf")
+    script: StringProperty(name="Script Name", description="Name of the script")
     mode: EnumProperty(
         items=(
             ("RENAME", "Rename...", "Rename this script", "BLANK1", 0),
@@ -230,6 +230,7 @@ class SHELFMADE_OT_CallScriptMenu(Operator):
             ("DOWN", "Move Down", "Move this script down in the list", "TRIA_DOWN", 4),
         ),
         name="Mode",
+        description="Action to perform on the script",
     )
 
     @classmethod
@@ -313,7 +314,7 @@ class SHELFMADE_OT_CallShelfMenu(Operator):
     bl_label = "Call Shelf Menu"
     bl_options = {"INTERNAL"}
 
-    index: IntProperty(name="Shelf Index")
+    index: IntProperty(name="Shelf Index", description="Position of the shelf")
     mode: EnumProperty(
         items=(
             ("RENAME", "Rename...", "Rename this shelf", "BLANK1", 0),
@@ -331,6 +332,7 @@ class SHELFMADE_OT_CallShelfMenu(Operator):
             ("DOWN", "Move Down", "Move this shelf down in the list", "TRIA_DOWN", 6),
         ),
         name="Mode",
+        description="Action to perform on the shelf",
     )
 
     @classmethod
@@ -423,7 +425,7 @@ class SHELFMADE_OT_EditShelfVisibility(Operator):
     bl_description = "Open shelf's panel visibility & display settings"
     bl_options = {"INTERNAL"}
 
-    index: IntProperty(name="Shelf Index")
+    index: IntProperty(name="Shelf Index", description="Position of the shelf")
 
     def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
         """
@@ -473,15 +475,30 @@ class SHELFMADE_OT_MoveScript(Operator):
     bl_description = "Move this script's position within its shelf"
     bl_options = {"INTERNAL"}
 
-    index: IntProperty(name="Shelf Index")
-    script: StringProperty(name="Script Name")
+    index: IntProperty(name="Shelf Index", description="Position of the shelf")
+    script: StringProperty(name="Script Name", description="Name of the script")
     direction: EnumProperty(
         items=(
             ("UP", "Up", "Up", "TRIA_UP", 0),
             ("DOWN", "Down", "Down", "TRIA_DOWN", 1),
         ),
         name="Direction",
+        description="Which way to move the script within the list",
     )
+
+    @classmethod
+    def description(cls, context: Context, properties: OperatorProperties) -> str:
+        """
+        Generate the description based on direction.
+
+        Args:
+            context (Context)
+            properties (OperatorProperties)
+
+        Returns:
+            str: Operator description
+        """
+        return f"Move this script {properties.mode.lower()} within the shelf"
 
     def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
         """
@@ -528,14 +545,29 @@ class SHELFMADE_OT_MoveShelf(Operator):
     bl_description = "Move this shelf's position within the shelf list"
     bl_options = {"INTERNAL"}
 
-    index: IntProperty(name="Shelf Index")
+    index: IntProperty(name="Shelf Index", description="Position of the shelf")
     direction: EnumProperty(
         items=(
             ("UP", "Up", "Up", "TRIA_UP", 0),
             ("DOWN", "Down", "Down", "TRIA_DOWN", 1),
         ),
         name="Direction",
+        description="Which way to move the shelf within the list",
     )
+
+    @classmethod
+    def description(cls, context: Context, properties: OperatorProperties) -> str:
+        """
+        Generate the description based on direction.
+
+        Args:
+            context (Context)
+            properties (OperatorProperties)
+
+        Returns:
+            str: Operator description
+        """
+        return f"Move this shelf {properties.mode.lower()} within the shelf list"
 
     def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
         """
@@ -597,7 +629,11 @@ class SHELFMADE_OT_OpenScript(Operator, io_utils.ImportHelper):
     bl_description = "Open this Python script file in the text editor"
     bl_options = {"UNDO"}
 
-    filepath: StringProperty(name="File Path", subtype="FILE_PATH")
+    filepath: StringProperty(
+        name="File Path",
+        description="Path to the script file to open",
+        subtype="FILE_PATH",
+    )
 
     def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
         """
@@ -718,7 +754,7 @@ class SHELFMADE_OT_RemoveShelf(Operator):
     bl_description = "Remove this shelf (does not delete any files)"
     bl_options = {"INTERNAL"}
 
-    index: IntProperty(name="Shelf Index")
+    index: IntProperty(name="Shelf Index", description="Position of the shelf")
 
     def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
         """
@@ -769,9 +805,9 @@ class SHELFMADE_OT_RenameScript(Operator):
     bl_description = "Change the display name of this script"
     bl_options = {"INTERNAL"}
 
-    index: IntProperty(name="Shelf Index")
-    script: StringProperty(name="Script Name")
-    name: StringProperty(name="New Name")
+    index: IntProperty(name="Shelf Index", description="Position of the shelf")
+    script: StringProperty(name="Script Name", description="Name of the script")
+    name: StringProperty(name="New Name", description="New display name for the script")
 
     def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
         """
@@ -866,8 +902,8 @@ class SHELFMADE_OT_RenameShelf(Operator):
     bl_description = "Change the display name of this shelf"
     bl_options = {"INTERNAL"}
 
-    index: IntProperty(name="Shelf Index")
-    name: StringProperty(name="New Name")
+    index: IntProperty(name="Shelf Index", description="Position of the shelf")
+    name: StringProperty(name="New Name", description="New display name for the shelf")
 
     def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
         """
@@ -934,7 +970,11 @@ class SHELFMADE_OT_RunScript(Operator, io_utils.ImportHelper):
     bl_label = "Run Script"
     bl_options = {"UNDO"}
 
-    filepath: StringProperty(name="File Path", subtype="FILE_PATH")
+    filepath: StringProperty(
+        name="File Path",
+        description="Path to the script file to run",
+        subtype="FILE_PATH",
+    )
 
     @classmethod
     def description(cls, context: Context, properties: OperatorProperties) -> str:
@@ -1019,7 +1059,10 @@ class SHELFMADE_OT_RunText(Operator):
     bl_description = "Execute this local text datablock"
     bl_options = {"UNDO"}
 
-    name: StringProperty(name="Text Name")
+    name: StringProperty(
+        name="Text Name",
+        description="Name of the text datablock to run",
+    )
 
     def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
         """
@@ -1046,7 +1089,11 @@ class SHELFMADE_OT_SaveTextToShelf(Operator):
     bl_description = "Save this text datablock to a shelf directory"
     bl_options = {"INTERNAL"}
 
-    shelf: EnumProperty(items=enum_shelves, name="Shelf")  # type: ignore
+    shelf: EnumProperty(
+        items=enum_shelves,  # type: ignore
+        name="Shelf",
+        description="Name of the shelf to save the script to",
+    )
 
     @classmethod
     def poll(cls, context: Context) -> bool:
@@ -1119,9 +1166,13 @@ class SHELFMADE_OT_SetScriptIcon(Operator):
     bl_options = {"INTERNAL"}
     bl_property = "icon"
 
-    index: IntProperty(name="Shelf Index")
-    script: StringProperty(name="Script Name")
-    icon: EnumProperty(items=enum_icons, name="Icon")  # type: ignore
+    index: IntProperty(name="Shelf Index", description="Position of the shelf")
+    script: StringProperty(name="Script Name", description="Name of the script")
+    icon: EnumProperty(
+        items=enum_icons,  # type: ignore
+        name="Icon",
+        description="Name of the icon to set for the script",
+    )
 
     def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
         """
@@ -1187,8 +1238,12 @@ class SHELFMADE_OT_SetShelfIcon(Operator):
     bl_options = {"INTERNAL"}
     bl_property = "icon"
 
-    index: IntProperty(name="Shelf Index")
-    icon: EnumProperty(items=enum_icons, name="Icon")  # type: ignore
+    index: IntProperty(name="Shelf Index", description="Position of the shelf")
+    icon: EnumProperty(
+        items=enum_icons,  # type: ignore
+        name="Icon",
+        description="Name of the icon to set for the shelf",
+    )
 
     def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
         """
