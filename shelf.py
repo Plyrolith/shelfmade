@@ -299,7 +299,7 @@ class Shelf(PropertyGroup):
         description="Expand this shelf",
         default=True,
     )
-    use_json_file: BoolProperty(
+    use_json: BoolProperty(
         name="Save to JSON",
         description="Save this shelf to a JSON file or in Blender's preferences only",
         default=True,
@@ -339,7 +339,7 @@ class Shelf(PropertyGroup):
         self.is_available = True
 
         # Read from JSON config
-        if self.use_json_file:
+        if self.use_json:
             self.load_json()
 
         # Set name
@@ -468,9 +468,7 @@ class Shelf(PropertyGroup):
         Returns:
             Path | None: Absolute path to the saved JSON file
         """
-        if not force and (
-            not self.is_available or not self.use_json_file or self.is_locked
-        ):
+        if not force and (not self.is_available or not self.use_json or self.is_locked):
             return
 
         file_name = self.json_filename

@@ -154,8 +154,7 @@ class SHELFMADE_OT_AddShelf(Operator, io_utils.ImportHelper):
             shelf.directory = self.directory
 
         # Set JSON config
-        if self.use_json:
-            shelf.use_json_file = True
+        shelf.use_json = self.use_json
 
         # Set editor visibility
         if self.add_to_all_editors:
