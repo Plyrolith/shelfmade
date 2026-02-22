@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 from pathlib import Path
 
 import bpy
+import os
 
 
 def annotations_to_dict(
@@ -50,6 +51,22 @@ def annotations_to_dict(
             shelf_dict[prop] = getattr(data, prop)
 
     return shelf_dict
+
+
+def env_to_list(key: str) -> list[str] | None:
+    """
+    Returns a environment variable as list of strings, using the appropriate separater
+    for the current OS.
+
+    Args:
+        key (str): Env variable name
+
+    Returns:
+        list[str] | None: Separated list of strings, if env var exists
+    """
+    var = os.environ.get(key)
+    if var:
+        return var.split(os.pathsep)
 
 
 def find_area_by_type(context: Context, type: str) -> Area | None:

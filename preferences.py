@@ -9,7 +9,10 @@ import bpy
 from bpy.props import BoolProperty, CollectionProperty
 from bpy.types import AddonPreferences
 
-from . import catalog, shelf
+from . import catalog, shelf, utils
+
+
+ENV_VAR = "SHELFMADE_PATH"
 
 
 @catalog.bpy_register
@@ -128,6 +131,29 @@ class Preferences(AddonPreferences):
                 icon="X",
             ).index = i
 
+    def create_env_shelves(self):
+        """
+        Create all shelves defined from env, if they don't exist yet.
+        """
+        if TYPE_CHECKING:
+            shelf: shelf.Shelf
+
+        # Get shelves from environment
+        env_paths = utils.env_to_list(ENV_VAR)
+        if env_paths:
+            for env_path in env_paths:
+                # Check if shelf already exists
+                if any(
+                    utils.same_paths(env_path, shelf.directory)
+                    for shelf in self.shelves
+                ):
+                    continue
+
+                # Create the shelf
+                shelf = self.shelves.add()
+                shelf.directory = env_path
+                shelf.is_locked = True
+
     def initialize_shelves(self):
         """
         Scan the script directories and initiate a script object for each script found.
@@ -144,8 +170,10 @@ class Preferences(AddonPreferences):
         """
         Initialize shelves & remove nonexistent shelves & scripts.
         """
-        Preferences.this().initialize_shelves()
-        Preferences.this().clean()
+        prefs = Preferences.this()
+        prefs.create_env_shelves()
+        prefs.initialize_shelves()
+        prefs.clean()
 
     @staticmethod
     def this() -> Preferences:
