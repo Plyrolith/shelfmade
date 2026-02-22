@@ -25,6 +25,14 @@ Use at your own risk.
 * Save any text directly to one of your shelves from the text editor.
 * Run adjusted local copies from the *Local Scripts* panel.
 * Save edited scripts back to their source.
+* Configurations will be saved in `.shelfmade.json` per shelf by default!
+
+## Environment Variable
+
+You can add shelves using the environment variable `SHELFMADE_PATHS`. Add multiple paths using your operating system's separater symbol. E.g. on Linux:
+`SHELFMADE_PATH=/path/to/first/shelf:/path/to/second/shelf blender`
+
+This is especially useful for making a set of loose pipeline scripts available to artists in a small studio.
 
 ## Structure
 |Module|Description|
