@@ -392,12 +392,12 @@ class Shelf(PropertyGroup):
 
         return False
 
-    def load_json(self) -> dict[str, bool | int | float | str | list | dict]:
+    def load_json(self) -> dict[str, bool | int | float | str | list | dict] | None:
         """
         Load this shelve's JSON file and parse data.
 
         Returns:
-            dict
+            dict | None: JSON dict if file exists
         """
         if TYPE_CHECKING:
             script: Script
@@ -409,15 +409,18 @@ class Shelf(PropertyGroup):
             file_name = ".shelfmade"
 
         json_path = Path(self.directory, file_name).with_suffix(".json")
+        if not json_path.is_file():
+            return
 
         # Lock to avoid save trigger
         exception = None
+        shelf_dict = {}
         is_locked = self.is_locked
         self.is_locked = True
 
-        with open(json_path, "r") as file:
-            shelf_dict = json.load(file)
-            try:
+        try:
+            with open(json_path, "r") as file:
+                shelf_dict = json.load(file)
                 for shelf_key, shelf_value in shelf_dict.items():
                     if shelf_key == "scripts":
                         for script_dict in shelf_value:  # type: ignore
@@ -437,8 +440,8 @@ class Shelf(PropertyGroup):
                         # Set shelf props
                         setattr(self, shelf_key, shelf_value)
 
-            except Exception as e:
-                exception = e
+        except Exception as e:
+            exception = e
 
         # Restore previous locked state
         self.is_locked = is_locked
