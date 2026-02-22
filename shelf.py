@@ -45,7 +45,7 @@ def update_directory(shelf: Shelf, context: Context):
         shelf.initialize()
 
     # Save user preferences
-    bpy.ops.wm.save_userpref()
+    update_save_json(shelf, context)
 
 
 def update_save_userpref(shelf: Shelf, context: Context):
@@ -56,7 +56,8 @@ def update_save_userpref(shelf: Shelf, context: Context):
         shelf (Shelf)
         context (Context)
     """
-    bpy.ops.wm.save_userpref()
+    if hasattr(context, "view_layer"):
+        bpy.ops.wm.save_userpref()
 
 
 def update_save_json(self: Script | Shelf, context: Context):
