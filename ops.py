@@ -99,6 +99,42 @@ def enum_icons(
 
 
 @catalog.bpy_register
+class SHELFMADE_OT_AddAuthor(Operator):
+    bl_idname = "shelfmade.add_author"
+    bl_label = "Add Author"
+    bl_description = "Add a user with edit permissions to this shelf"
+    bl_options = {"INTERNAL"}
+
+    index: IntProperty(name="Shelf Index", description="Position of the shelf")
+
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Add a new author to the shelf. If this is the first author, use the current user
+
+        Args:
+            context (Context)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        if TYPE_CHECKING:
+            author: shelf.Author
+            shelf: shelf.Shelf
+
+        # Add a new author
+        shelf = preferences.Preferences.this().shelves[self.index]
+        author = shelf.authors.add()
+        if len(shelf.authors) == 1:
+            author.name = utils.get_user()
+            shelf.save_json()
+
+        # Redraw UI
+        context.area.tag_redraw()
+
+        return {"FINISHED"}
+
+
+@catalog.bpy_register
 class SHELFMADE_OT_AddShelf(Operator, io_utils.ImportHelper):
     bl_idname = "shelfmade.add_shelf"
     bl_label = "Add Shelf"
@@ -318,6 +354,7 @@ class SHELFMADE_OT_CallShelfMenu(Operator):
         items=(
             ("RENAME", "Rename...", "Rename this shelf", "BLANK1", 0),
             ("ICON", "Set Icon...", "Set this shelf's icon", "BLANK1", 1),
+            ("OPEN", "Open Folder", "Open this shelf's folder", "BLANK1", 3),
             (
                 "VISIBILITY",
                 "Display Options...",
@@ -325,10 +362,10 @@ class SHELFMADE_OT_CallShelfMenu(Operator):
                 "VIS_SEL_11",
                 2,
             ),
-            ("OPEN", "Open Folder", "Open this shelf's folder", "BLANK1", 3),
-            ("REMOVE", "Remove", "Remove this shelf", "X", 4),
-            ("UP", "Move Up", "Move this shelf up in the list", "TRIA_UP", 5),
-            ("DOWN", "Move Down", "Move this shelf down in the list", "TRIA_DOWN", 6),
+            ("LOCK", "Lock...", "Edit lock options", "BLANK1", 4),
+            ("REMOVE", "Remove", "Remove this shelf", "X", 5),
+            ("UP", "Move Up", "Move this shelf up in the list", "TRIA_UP", 6),
+            ("DOWN", "Move Down", "Move this shelf down in the list", "TRIA_DOWN", 7),
         ),
         name="Mode",
         description="Action to perform on the shelf",
@@ -351,10 +388,12 @@ class SHELFMADE_OT_CallShelfMenu(Operator):
                 return SHELFMADE_OT_RenameShelf.bl_description
             case "ICON":
                 return SHELFMADE_OT_SetShelfIcon.bl_description
-            case "VISIBILITY":
-                return SHELFMADE_OT_EditShelfVisibility.bl_description
             case "OPEN":
                 return "Open this shelf's folder in the system file explorer"
+            case "VISIBILITY":
+                return SHELFMADE_OT_EditShelfVisibility.bl_description
+            case "LOCK":
+                return SHELFMADE_OT_EditShelfLock.bl_description
             case "REMOVE":
                 return SHELFMADE_OT_RemoveShelf.bl_description
             case "DOWN":
@@ -389,17 +428,23 @@ class SHELFMADE_OT_CallShelfMenu(Operator):
                     index=self.index,
                 )
 
+            case "OPEN":
+                bpy.ops.wm.path_open(
+                    filepath=preferences.Preferences.this()
+                    .shelves[self.index]
+                    .directory
+                )
+
             case "VISIBILITY":
                 bpy.ops.shelfmade.edit_shelf_visibility(  # type: ignore
                     "INVOKE_DEFAULT",
                     index=self.index,
                 )
 
-            case "OPEN":
-                bpy.ops.wm.path_open(
-                    filepath=preferences.Preferences.this()
-                    .shelves[self.index]
-                    .directory
+            case "LOCK":
+                bpy.ops.shelfmade.edit_shelf_lock(  # type: ignore
+                    "INVOKE_DEFAULT",
+                    index=self.index,
                 )
 
             case "REMOVE":
@@ -414,6 +459,78 @@ class SHELFMADE_OT_CallShelfMenu(Operator):
                     direction=self.mode,
                 )
 
+        return {"FINISHED"}
+
+
+@catalog.bpy_register
+class SHELFMADE_OT_EditShelfLock(Operator):
+    bl_idname = "shelfmade.edit_shelf_lock"
+    bl_label = "Edit Shelf Lock"
+    bl_description = "Open shelf's lock settings"
+    bl_options = {"INTERNAL"}
+
+    index: IntProperty(name="Shelf Index", description="Position of the shelf")
+
+    def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
+        """
+        Invoke this operator's properties dialog.
+
+        Args:
+            context (Context)
+            event (Event)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        return context.window_manager.invoke_popup(self, width=200)
+
+    def draw(self, context: Context):
+        """
+        Draw a dialog containing shelf lock options.
+
+        Args:
+            context (Context)
+        """
+        layout = self.layout
+        layout.row().label(text=self.bl_label)
+        layout.separator(type="LINE")
+        draw.shelf_lock(self, context, index=self.index)
+
+    def cancel(self, context: Context):
+        """
+        Remove empty authors.
+        Save the shelf after settings may have changed in the draw phase.
+
+        Args:
+            context (Context)
+        """
+        if TYPE_CHECKING:
+            author: shelf.Author
+            shelf: shelf.Shelf
+
+        shelf = preferences.Preferences.this().shelves[self.index]
+        offset = len(shelf.authors) - 1
+        has_removed_empty = False
+        for i, author in enumerate(reversed(shelf.authors)):
+            i = offset - i
+            if not author.name:
+                shelf.authors.remove(i)
+                has_removed_empty = True
+
+        if has_removed_empty:
+            shelf.save_json()
+
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Save the shelf after settings may have changed in the draw phase.
+
+        Args:
+            context (Context)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        self.cancel(context)
         return {"FINISHED"}
 
 
@@ -739,6 +856,53 @@ class SHELFMADE_OT_Reload(Operator):
 
         # Save user preferences
         bpy.ops.wm.save_userpref()
+
+        # Redraw UI
+        context.area.tag_redraw()
+
+        return {"FINISHED"}
+
+
+@catalog.bpy_register
+class SHELFMADE_OT_RemoveAuthor(Operator):
+    bl_idname = "shelfmade.remove_author"
+    bl_label = "Remove Author"
+    bl_description = "Remove the author from the shelf"
+    bl_options = {"INTERNAL"}
+
+    index: IntProperty(name="Shelf Index", description="Position of the shelf")
+    author_index: IntProperty(name="Author Index", description="Position of the author")
+
+    def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
+        """
+        Request user confirmation via dialog.
+
+        Args:
+            context (Context)
+            event (Event)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        return context.window_manager.invoke_confirm(self, event)
+
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Remove an author.
+
+        Args:
+            context (Context)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        if TYPE_CHECKING:
+            shelf: shelf.Shelf
+
+        # Remove author
+        shelf = preferences.Preferences.this().shelves[self.index]
+        shelf.authors.remove(self.author_index)
+        shelf.save_json()
 
         # Redraw UI
         context.area.tag_redraw()

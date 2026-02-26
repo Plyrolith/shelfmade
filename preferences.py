@@ -21,9 +21,9 @@ class Preferences(AddonPreferences):
 
     bl_idname = __package__ or "shelfmade"
 
-    is_locked: BoolProperty(
-        name="(Un)Lock Shelves",
-        description="Lock all shelves and hide their menus from the UI",
+    show_menus: BoolProperty(
+        name="Show Menus",
+        description="Display shelf menus in UI panels",
         update=shelf.update_save_userpref,
     )
     shelves: CollectionProperty(
@@ -79,6 +79,7 @@ class Preferences(AddonPreferences):
 
             # Icon
             row_name = row_shelf.row(align=True)
+            row_name.enabled = not shelf.is_locked
             row_name.operator(
                 operator="shelfmade.set_shelf_icon",
                 text="",
@@ -89,7 +90,9 @@ class Preferences(AddonPreferences):
             row_name.prop(shelf, "name", text="")
 
             # Visibility
-            row_shelf.operator(
+            row_vis = row_shelf.row()
+            row_vis.enabled = not shelf.is_locked
+            row_vis.operator(
                 operator="shelfmade.edit_shelf_visibility",
                 text="",
                 icon="VIS_SEL_11",
@@ -97,8 +100,20 @@ class Preferences(AddonPreferences):
 
             # Path
             split_path = row_shelf.split(factor=0.8, align=True)
+            split_path.enabled = not shelf.is_locked
             split_path.prop(shelf, "directory", text="")
-            split_path.prop(shelf, "use_json_file", text="JSON", toggle=True)
+            split_path.prop(shelf, "use_json", text="JSON", toggle=True)
+
+            # Lock
+            row_lock = row_shelf.row()
+            if shelf.use_json:
+                row_lock.operator(
+                    "shelfmade.edit_shelf_lock",
+                    text="",
+                    icon="LOCKED" if shelf.is_locked else "UNLOCKED",
+                ).index = i
+            else:
+                row_lock.label(text="", icon="BLANK1")
 
             # Move
             row_move = row_shelf.row(align=True)

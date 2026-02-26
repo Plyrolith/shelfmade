@@ -8,13 +8,13 @@ if TYPE_CHECKING:
     from bpy.types import bpy_struct, Context, Operator, Panel, Text, UILayout
     from bpy.stub_internal.rna_enums import IconItems
 
-    from .shelf import Script, Shelf
+    from .shelf import Author, Script, Shelf
 
 import re
 
 import bpy
 
-from . import preferences
+from . import preferences, utils
 
 # Dictionary containing 'area.ui_type' keys and area icon values
 AREA_TYPES: dict[str, IconItems] = {
@@ -71,6 +71,88 @@ def local_scripts(panel: Panel | Operator, context: Context):
             operator="wm.run_text",
             text=text.name,
         ).name = text.name
+
+
+def shelf_lock(panel: Panel | Operator, context: Context, index: int):
+    """
+    Draw an interface containing shelf lock options.
+
+    Args:
+        panel (Panel | Operator)
+        context (Context)
+        shelf (int): Index of the shelf whose settings are drawn
+    """
+    if TYPE_CHECKING:
+        author: Author
+        shelf: Shelf
+
+    shelf = preferences.Preferences.this().shelves[index]
+    is_unlockable = shelf.is_unlockable()
+    layout = panel.layout
+
+    # Lock
+    row_lock = layout.row()
+    row_lock.enabled = is_unlockable
+    row_lock.prop(
+        shelf,
+        "is_locked",
+        toggle=True,
+        icon="LOCKED" if shelf.is_locked else "UNLOCKED",
+    )
+
+    # Authors info
+    layout.separator()
+    row_info = layout.row()
+    row_info.alignment = "CENTER"
+    if is_unlockable:
+        text = "Add authors to limit unlocking"
+        icon = "INFO"
+    else:
+        text = "You are not in the authors list"
+        icon = "ERROR"
+    row_info.label(text=text, icon=icon)
+
+    # Add authors
+    col_lock = layout.column(align=True)
+    if is_unlockable:
+        col_lock.separator()
+        col_lock.row(align=True).operator(
+            "shelfmade.add_author",
+            icon="PLUS",
+        ).index = index
+        if shelf.is_locked:
+            col_lock.enabled = False
+    else:
+        col_lock.enabled = False
+
+    # Authors list
+    if not shelf.authors:
+        return
+    user = utils.get_user()
+    box_authors = col_lock.box()
+    for i, author in enumerate(shelf.authors):
+        row_author = box_authors.row(align=True)
+
+        # Name
+        row_name = row_author.row(align=True)
+        row_name.prop(author, "name", text="")
+        if not is_unlockable:
+            continue
+        row_remove = row_author.row(align=True)
+        if user == author.name:
+            row_name.enabled = False
+
+        # Remove
+        op_remove = row_remove.operator(
+            "shelfmade.remove_author",
+            text="",
+            icon="X",
+            # emboss=False,
+        )
+        op_remove.index = index
+        op_remove.author_index = i
+        if user == author.name and len(shelf.authors) > 1:
+            row_remove.enabled = False
 
 
 def shelf_visibility(panel: Panel | Operator, context: Context, index: int):
@@ -178,7 +260,7 @@ def shelf_scripts(panel: Panel | Operator, context: Context):
                     ).filepath = script.get_path().as_posix()
 
                     # Menu button
-                    if not prefs.is_locked:
+                    if not shelf.is_locked and prefs.show_menus:
                         op_script = row_script.operator_menu_enum(
                             "shelfmade.call_script_menu",
                             "mode",
@@ -193,9 +275,19 @@ def shelf_scripts(panel: Panel | Operator, context: Context):
                 row_noscripts.label(text="No Scripts Found", icon="GHOST_DISABLED")
 
         # Shelf menu
-        if not prefs.is_locked:
-            row_menu = row_title.row()
-            row_menu.alignment = "RIGHT"
+        row_menu = row_title.row()
+        row_menu.alignment = "RIGHT"
+        if not prefs.show_menus:
+            row_menu.label(text="", icon="BLANK1")
+        elif shelf.is_locked:
+            row_menu.operator_context = "INVOKE_DEFAULT"
+            row_menu.operator(
+                "shelfmade.edit_shelf_lock",
+                text="",
+                icon="LOCKED",
+                emboss=False,
+            ).index = sh_i
+        else:
             row_menu.operator_menu_enum(
                 "shelfmade.call_shelf_menu",
                 "mode",

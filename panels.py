@@ -91,9 +91,10 @@ class Shelves(Panel):
 
         row_header.prop(
             prefs,
-            "is_locked",
+            "show_menus",
             text="",
-            icon="LOCKED" if prefs.is_locked else "UNLOCKED",
+            icon="KEY_MENU_FILLED" if prefs.show_menus else "KEY_MENU",
+            toggle=True,
         )
 
     def draw(self, context: Context):

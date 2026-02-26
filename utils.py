@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from typing import Literal
 
     from bpy.stub_internal.rna_enums import SpaceTypeItems
-    from bpy.types import bpy_struct, Area, Context, Text
+    from bpy.types import bpy_struct, Area, Context, PropertyGroup, Text
 
 from pathlib import Path
 
@@ -43,7 +43,6 @@ def annotations_to_dict(
             for col in getattr(data, prop):
                 col_dict = annotations_to_dict(col, recursion_depth - 1)
                 shelf_dict.setdefault(prop, []).append(col_dict)  # type: ignore
-            shelf_dict[prop]
         elif annotation.startswith("PointerProperty"):
             pointer = getattr(data, prop)
             shelf_dict[prop] = annotations_to_dict(pointer, recursion_depth - 1)
@@ -51,6 +50,52 @@ def annotations_to_dict(
             shelf_dict[prop] = getattr(data, prop)
 
     return shelf_dict
+
+
+def dict_to_property_group(
+    property_group: PropertyGroup,
+    data_dict: dict[str, bool | int | float | dict | list[dict]],
+    recursion_depth: int = 16,
+):
+    """
+    Apply dictionary data to a property group recursively.
+
+    Args:
+        property_group (PropertyGroup)
+    """
+    if recursion_depth <= 0:
+        return
+
+    for key, value in data_dict.items():
+        # Pointer
+        if isinstance(value, dict):
+            pointer = getattr(property_group, key)
+            dict_to_property_group(pointer, value)
+
+        # Collection property
+        elif isinstance(value, list):
+            item_collection = getattr(property_group, key)
+            item_collection.clear()
+            for item_dict in value:  # type: ignore
+                # Try to find existing collection item
+                # item_name = item_dict.pop("name")
+                # item = item_collection.get(item_name)
+
+                # Create a new one
+                # if not item:
+                item = item_collection.add()
+                # item.name = item_name
+
+                # Set properties on
+                dict_to_property_group(item, item_dict, recursion_depth - 1)
+
+        # Regular data props
+        else:
+            # Set props directly
+            try:
+                setattr(property_group, key, value)
+            except Exception:
+                ...
 
 
 def env_to_list(key: str) -> list[str] | None:
@@ -116,6 +161,16 @@ def find_or_create_area(
         raise ValueError("No area found to split.")
 
     return split_area(area, type, direction, factor)
+
+
+def get_user() -> str:
+    """
+    Get the current OS user.
+
+    Returns:
+        str: Username
+    """
+    return os.environ.get("USERNAME", "")
 
 
 def open_script_file(filepath: str | PathLike) -> Text:

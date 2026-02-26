@@ -71,6 +71,45 @@ def update_save_json(self: Script | Shelf, context: Context):
     self.save_json()
 
 
+# Author class
+
+
+@catalog.bpy_register
+class Author(PropertyGroup):
+    """User with permissions to edit a shelf"""
+
+    name: StringProperty(
+        name="Username",
+        description="OS username for a user with edit permissions",
+        update=update_save_json,
+    )
+
+    def get_shelf(self) -> Shelf:
+        """
+        Return this author's shelf object.
+
+        Returns:
+            Shelf
+        """
+        if TYPE_CHECKING:
+            shelf: Shelf
+
+        shelf = self.rna_ancestors()[-1]  # type: ignore
+        return shelf
+
+    def save_json(self, force: bool = False) -> Path | None:
+        """
+        Save this author's shelf to its JSON file, if conditions allow it.
+
+        Args:
+            force (bool): Save even when conditions aren't met.
+
+        Returns:
+            Path | None: Absolute path to the saved JSON file
+        """
+        return self.get_shelf().save_json(force)
+
+
 # Script snippet class
 
 
@@ -160,6 +199,11 @@ class Shelf(PropertyGroup):
         name="Align Buttons",
         description="Align all buttons and remove all padding for the whole shelf",
         update=update_save_json,
+    )
+    authors: CollectionProperty(
+        type=Author,
+        name="Authors",
+        description="OS users with unlock and edit permissions",
     )
     columns: IntProperty(
         name="Columns",
@@ -347,6 +391,10 @@ class Shelf(PropertyGroup):
         if not self.name:
             self.name = Path(self.directory).name
 
+        # Lock if user is not in authors list
+        if not self.is_locked:
+            self.is_locked = not self.is_unlockable()
+
         # Iterate directory and find python scripts
         has_new_scripts = False
         for script_file in sorted(Path(self.directory).iterdir()):
@@ -370,6 +418,25 @@ class Shelf(PropertyGroup):
         # Save new sscripts to JSON
         if has_new_scripts:
             self.save_json()
+
+    def is_unlockable(self) -> bool:
+        """
+        Check if the current user has permissions to unlock this shelf.
+
+        Returns:
+            bool: Whether the shelf can be unlocked
+        """
+        if TYPE_CHECKING:
+            author: Author
+
+        if not self.authors:
+            return True
+
+        for author in self.authors:
+            if author.name == utils.get_user():
+                return True
+
+        return False
 
     def is_visible(self, context: Context):
         """
@@ -399,11 +466,6 @@ class Shelf(PropertyGroup):
         Returns:
             dict | None: JSON dict if file exists
         """
-        if TYPE_CHECKING:
-            script: Script
-            shelf_dict: dict[str, bool | int | float | str | list | dict]
-            script_dict: dict[str, bool | int | float | str]
-
         file_name = self.json_filename
         if not file_name:
             file_name = ".shelfmade"
@@ -421,24 +483,7 @@ class Shelf(PropertyGroup):
         try:
             with open(json_path, "r") as file:
                 shelf_dict = json.load(file)
-                for shelf_key, shelf_value in shelf_dict.items():
-                    if shelf_key == "scripts":
-                        for script_dict in shelf_value:  # type: ignore
-                            # Find script by file name
-                            script_name = script_dict.pop("name")
-                            script = self.scripts.get(script_name)
-
-                            # Create a new one
-                            if not script:
-                                script = self.scripts.add()
-                                script.name = script_name
-
-                            # Set script props
-                            for script_key, script_value in script_dict.items():
-                                setattr(script, script_key, script_value)
-                    else:
-                        # Set shelf props
-                        setattr(self, shelf_key, shelf_value)
+                utils.dict_to_property_group(self, shelf_dict)
 
         except Exception as e:
             exception = e
