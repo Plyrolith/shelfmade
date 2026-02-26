@@ -48,6 +48,29 @@ class Preferences(AddonPreferences):
                 if not script.is_available:
                     shelf.scripts.remove(i_sc)
 
+    def create_env_shelves(self):
+        """
+        Create all shelves defined from env, if they don't exist yet.
+        """
+        if TYPE_CHECKING:
+            shelf: shelf.Shelf
+
+        # Get shelves from environment
+        env_paths = utils.env_to_list(ENV_VAR)
+        if env_paths:
+            for env_path in env_paths:
+                # Check if shelf already exists
+                if any(
+                    utils.same_paths(env_path, shelf.directory)
+                    for shelf in self.shelves
+                ):
+                    continue
+
+                # Create the shelf
+                shelf = self.shelves.add()
+                shelf.directory = env_path
+                shelf.is_locked = True
+
     def draw(self, context: Context):
         """
         Draw add-on the preferences panel. Displays an overview of all shelves with all
@@ -145,29 +168,6 @@ class Preferences(AddonPreferences):
                 text="",
                 icon="X",
             ).index = i
-
-    def create_env_shelves(self):
-        """
-        Create all shelves defined from env, if they don't exist yet.
-        """
-        if TYPE_CHECKING:
-            shelf: shelf.Shelf
-
-        # Get shelves from environment
-        env_paths = utils.env_to_list(ENV_VAR)
-        if env_paths:
-            for env_path in env_paths:
-                # Check if shelf already exists
-                if any(
-                    utils.same_paths(env_path, shelf.directory)
-                    for shelf in self.shelves
-                ):
-                    continue
-
-                # Create the shelf
-                shelf = self.shelves.add()
-                shelf.directory = env_path
-                shelf.is_locked = True
 
     def initialize_shelves(self):
         """
