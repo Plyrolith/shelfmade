@@ -260,7 +260,7 @@ class SHELFMADE_OT_CallScriptMenu(Operator):
         items=(
             ("RENAME", "Rename...", "Rename this script", "BLANK1", 0),
             ("ICON", "Set Icon...", "Set this script's icon", "BLANK1", 1),
-            ("OPEN", "Open", "Open this script in the editor", "BLANK1", 2),
+            ("OPEN", "Open Script", "Open this script in the editor", "BLANK1", 2),
             ("UP", "Move Up", "Move this script up in the list", "TRIA_UP", 3),
             ("DOWN", "Move Down", "Move this script down in the list", "TRIA_DOWN", 4),
         ),
@@ -555,7 +555,7 @@ class SHELFMADE_OT_EditShelfVisibility(Operator):
             set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
 
         """
-        return context.window_manager.invoke_props_dialog(self, width=200)
+        return context.window_manager.invoke_popup(self, width=200)
 
     def draw(self, context: Context):
         """
@@ -565,7 +565,21 @@ class SHELFMADE_OT_EditShelfVisibility(Operator):
         Args:
             context (Context)
         """
+        layout = self.layout
+        layout.row().label(text=self.bl_label)
+        layout.separator(type="LINE")
         draw.shelf_visibility(panel=self, context=context, index=self.index)
+
+    def cancel(self, context: Context):
+        """
+        Remove empty authors.
+        Save the shelf after settings may have changed in the draw phase.
+
+        Args:
+            context (Context)
+        """
+        # Save user preferences
+        bpy.ops.wm.save_userpref()
 
     def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
         """
@@ -578,9 +592,7 @@ class SHELFMADE_OT_EditShelfVisibility(Operator):
             set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
 
         """
-        # Save user preferences
-        bpy.ops.wm.save_userpref()
-
+        self.cancel(context)
         return {"FINISHED"}
 
 
