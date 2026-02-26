@@ -13,6 +13,7 @@ import bpy
 from bpy.props import (
     BoolProperty,
     CollectionProperty,
+    EnumProperty,
     FloatProperty,
     IntProperty,
     StringProperty,
@@ -20,6 +21,28 @@ from bpy.props import (
 from bpy.types import PropertyGroup
 
 from . import catalog, utils
+
+
+def enum_icons(self, context: Context) -> list[tuple[str, str, str, str, int]]:
+    """
+    Return the enumerator containing all availble Blender icons.
+
+    Args:
+        context (Context)
+
+    Returns:
+        list[tuple[str, str, str, str, int]]:
+          Blender enumerator tuple list; each tuple containing
+          - identifier (str)
+          - name (str)
+          - description (str)
+          - icon (str)
+          - index (int)
+    """
+    bl_rna = bpy.types.UILayout.bl_rna
+    enum_icons = bl_rna.functions["prop"].parameters["icon"].enum_items  # type: ignore
+    return [(icon, icon, icon, icon, idx) for idx, icon in enumerate(enum_icons.keys())]
+
 
 # Update functions
 
@@ -122,9 +145,9 @@ class Script(PropertyGroup):
         description="The name displayed in the UI",
         update=update_save_json,
     )
-    icon: StringProperty(
+    icon: EnumProperty(
+        items=enum_icons,  # type: ignore
         name="Icon",
-        default="NONE",
         description="The icon representing this script",
         update=update_save_json,
     )
@@ -310,9 +333,9 @@ class Shelf(PropertyGroup):
         soft_max=8.0,
         update=update_save_json,
     )
-    icon: StringProperty(
+    icon: EnumProperty(
+        items=enum_icons,  # type: ignore
         name="Icon",
-        default="NONE",
         description="The icon representing this shelf",
         update=update_save_json,
     )

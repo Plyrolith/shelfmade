@@ -6,8 +6,6 @@ if TYPE_CHECKING:
     from bpy.types import Context, Event, OperatorProperties, SpaceTextEditor, Text
     from bpy.stub_internal.rna_enums import OperatorReturnItems
 
-    from . import shelf
-
 from pathlib import Path
 
 import bpy
@@ -15,7 +13,7 @@ from bpy.props import BoolProperty, EnumProperty, IntProperty, StringProperty
 from bpy.types import Operator
 from bpy_extras import io_utils
 
-from . import catalog, draw, preferences, utils
+from . import catalog, draw, preferences, shelf, utils
 
 
 # Enumerators
@@ -56,31 +54,6 @@ def enum_shelves(
         for idx, shelf in enumerate(shelves)
         if shelf.is_available
     ]
-
-
-def enum_icons(
-    operator: SHELFMADE_OT_SetScriptIcon | SHELFMADE_OT_SetShelfIcon,
-    context: Context,
-) -> list[tuple[str, str, str, str, int]]:
-    """
-    Return the enumerator containing all availble Blender icons.
-
-    Args:
-        operator (SHELFMADE_OT_SetScriptIcon | SHELFMADE_OT_SetShelfIcon)
-        context (Context)
-
-    Returns:
-        list[tuple[str, str, str, str, int]]:
-          Blender enumerator tuple list; each tuple containing
-          - identifier (str)
-          - name (str)
-          - description (str)
-          - icon (str)
-          - index (int)
-    """
-    bl_rna = bpy.types.UILayout.bl_rna
-    enum_icons = bl_rna.functions["prop"].parameters["icon"].enum_items  # type: ignore
-    return [(icon, icon, icon, icon, idx) for idx, icon in enumerate(enum_icons.keys())]
 
 
 # Operators
@@ -1309,7 +1282,7 @@ class SHELFMADE_OT_SetScriptIcon(Operator):
     index: IntProperty(name="Shelf Index", description="Position of the shelf")
     script: StringProperty(name="Script Name", description="Name of the script")
     icon: EnumProperty(
-        items=enum_icons,  # type: ignore
+        items=shelf.enum_icons,  # type: ignore
         name="Icon",
         description="Name of the icon to set for the script",
     )
@@ -1378,7 +1351,7 @@ class SHELFMADE_OT_SetShelfIcon(Operator):
 
     index: IntProperty(name="Shelf Index", description="Position of the shelf")
     icon: EnumProperty(
-        items=enum_icons,  # type: ignore
+        items=shelf.enum_icons,  # type: ignore
         name="Icon",
         description="Name of the icon to set for the shelf",
     )
