@@ -951,7 +951,7 @@ class SHELFMADE_OT_RenameScript(Operator):
         self.name = script.display_name
 
         # Draw dialog
-        return context.window_manager.invoke_props_dialog(self)
+        return context.window_manager.invoke_props_dialog(self, confirm_text="Save")
 
     def draw(self, context: Context):
         """
@@ -1039,7 +1039,7 @@ class SHELFMADE_OT_RenameShelf(Operator):
         self.name = preferences.Preferences.this().shelves[self.index].name
 
         # Draw dialog
-        return context.window_manager.invoke_props_dialog(self)
+        return context.window_manager.invoke_props_dialog(self, confirm_text="Save")
 
     def draw(self, context: Context):
         """
