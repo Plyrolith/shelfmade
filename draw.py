@@ -68,7 +68,7 @@ def local_scripts(panel: Panel | Operator, context: Context):
 
         # Draw operator
         layout.row().operator(
-            operator="wm.run_text",
+            "wm.run_text",
             text=text.name,
         ).name = text.name
 
@@ -211,7 +211,7 @@ def shelf_scripts(panel: Panel | Operator, context: Context):
     prefs = preferences.Preferences.this()
     shelves = prefs.shelves
     if not shelves:
-        layout.operator(operator="shelfmade.add_shelf", icon="ADD")
+        layout.operator("shelfmade.add_shelf", icon="ADD")
         return
 
     # Draw each shelf
@@ -254,7 +254,7 @@ def shelf_scripts(panel: Panel | Operator, context: Context):
                     # Run script operator
                     row_script.operator_context = "EXEC_DEFAULT"
                     row_script.operator(
-                        operator="wm.run_script",
+                        "wm.run_script",
                         text=script.display_name,
                         icon=script.icon,
                     ).filepath = script.get_path().as_posix()
