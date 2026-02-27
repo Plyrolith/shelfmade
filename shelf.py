@@ -127,7 +127,7 @@ class Shelf(PropertyGroup):
         if not context:
             context = bpy.context
 
-        if self.is_available or self.is_locked:
+        if not self.is_available or self.is_locked:
             return
 
         elif self.use_json:
