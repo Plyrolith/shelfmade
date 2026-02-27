@@ -98,6 +98,27 @@ def dict_to_property_group(
                 ...
 
 
+def enum_icons(self, context: Context) -> list[tuple[str, str, str, str, int]]:
+    """
+    Return the enumerator containing all availble Blender icons.
+
+    Args:
+        context (Context)
+
+    Returns:
+        list[tuple[str, str, str, str, int]]:
+          Blender enumerator tuple list; each tuple containing
+          - identifier (str)
+          - name (str)
+          - description (str)
+          - icon (str)
+          - index (int)
+    """
+    bl_rna = bpy.types.UILayout.bl_rna
+    enum_icons = bl_rna.functions["prop"].parameters["icon"].enum_items  # type: ignore
+    return [(icon, icon, icon, icon, idx) for idx, icon in enumerate(enum_icons.keys())]
+
+
 def env_to_list(key: str) -> list[str] | None:
     """
     Returns a environment variable as list of strings, using the appropriate separater

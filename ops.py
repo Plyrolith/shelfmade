@@ -1279,7 +1279,7 @@ class SHELFMADE_OT_SetScriptIcon(Operator):
     index: IntProperty(name="Shelf Index", description="Position of the shelf")
     script: StringProperty(name="Script Name", description="Name of the script")
     icon: EnumProperty(
-        items=shelf.enum_icons,  # type: ignore
+        items=utils.enum_icons,  # type: ignore
         name="Icon",
         description="Name of the icon to set for the script",
     )
@@ -1348,7 +1348,7 @@ class SHELFMADE_OT_SetShelfIcon(Operator):
 
     index: IntProperty(name="Shelf Index", description="Position of the shelf")
     icon: EnumProperty(
-        items=shelf.enum_icons,  # type: ignore
+        items=utils.enum_icons,  # type: ignore
         name="Icon",
         description="Name of the icon to set for the shelf",
     )

@@ -23,30 +23,6 @@ from bpy.types import PropertyGroup
 from . import catalog, utils
 
 
-def enum_icons(self, context: Context) -> list[tuple[str, str, str, str, int]]:
-    """
-    Return the enumerator containing all availble Blender icons.
-
-    Args:
-        context (Context)
-
-    Returns:
-        list[tuple[str, str, str, str, int]]:
-          Blender enumerator tuple list; each tuple containing
-          - identifier (str)
-          - name (str)
-          - description (str)
-          - icon (str)
-          - index (int)
-    """
-    bl_rna = bpy.types.UILayout.bl_rna
-    enum_icons = bl_rna.functions["prop"].parameters["icon"].enum_items  # type: ignore
-    return [(icon, icon, icon, icon, idx) for idx, icon in enumerate(enum_icons.keys())]
-
-
-# Author class
-
-
 @catalog.bpy_register
 class Author(PropertyGroup):
     """User with permissions to edit a shelf"""
@@ -80,9 +56,6 @@ class Author(PropertyGroup):
         return shelf
 
 
-# Script snippet class
-
-
 @catalog.bpy_register
 class Script(PropertyGroup):
     """Representation of a single script within a shelf"""
@@ -102,7 +75,7 @@ class Script(PropertyGroup):
         update=save,
     )
     icon: EnumProperty(
-        items=enum_icons,  # type: ignore
+        items=utils.enum_icons,  # type: ignore
         name="Icon",
         description="The icon representing this script",
         update=save,
@@ -138,9 +111,6 @@ class Script(PropertyGroup):
 
         shelf = self.rna_ancestors()[-1]  # type: ignore
         return shelf
-
-
-# Shelf class
 
 
 @catalog.bpy_register
@@ -304,7 +274,7 @@ class Shelf(PropertyGroup):
         update=save,
     )
     icon: EnumProperty(
-        items=enum_icons,  # type: ignore
+        items=utils.enum_icons,  # type: ignore
         name="Icon",
         description="The icon representing this shelf",
         update=save,
