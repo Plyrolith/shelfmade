@@ -512,7 +512,7 @@ class Shelf(PropertyGroup):
             "is_locked",
             "json_filename",
             "show_scripts",
-            "use_json_file",
+            "use_json",
         ):
             shelf_dict.pop(shelf_prop, None)
         for script_dict in shelf_dict.get("scripts", []):  # type: ignore
