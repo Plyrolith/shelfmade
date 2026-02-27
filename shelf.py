@@ -44,56 +44,6 @@ def enum_icons(self, context: Context) -> list[tuple[str, str, str, str, int]]:
     return [(icon, icon, icon, icon, idx) for idx, icon in enumerate(enum_icons.keys())]
 
 
-# Update functions
-
-
-def update_directory(shelf: Shelf, context: Context):
-    """
-    Re-scans scripts on any directory change. Saves userprefs.
-
-    Args:
-        shelf (Shelf)
-        context (Context)
-    """
-    if shelf.directory:
-        # Make sure the path is normalized
-        posix_path = Path(shelf.directory).resolve().as_posix()
-
-        # Set the posix path; this will trigger another update so return
-        if shelf.directory != posix_path:
-            shelf.directory = posix_path
-            return
-
-        # Re-initialize scripts
-        shelf.initialize()
-
-    # Save user preferences
-    update_save_json(shelf, context)
-
-
-def update_save_userpref(shelf: Shelf, context: Context):
-    """
-    Save userprefs on update.
-
-    Args:
-        shelf (Shelf)
-        context (Context)
-    """
-    if hasattr(context, "view_layer"):
-        bpy.ops.wm.save_userpref()
-
-
-def update_save_json(self: Script | Shelf, context: Context):
-    """
-    Save to JSON on update, if flag is set.
-
-    Args:
-        shelf (Shelf)
-        context (Context)
-    """
-    self.save_json()
-
-
 # Author class
 
 
@@ -101,10 +51,19 @@ def update_save_json(self: Script | Shelf, context: Context):
 class Author(PropertyGroup):
     """User with permissions to edit a shelf"""
 
+    def save(self, context: Context | None = None):
+        """
+        Save to JSON or save userprefs, based on properties.
+
+        Args:
+            context (Context | None)
+        """
+        self.get_shelf().save(context)
+
     name: StringProperty(
         name="Username",
         description="OS username for a user with edit permissions",
-        update=update_save_json,
+        update=save,
     )
 
     def get_shelf(self) -> Shelf:
@@ -120,18 +79,6 @@ class Author(PropertyGroup):
         shelf = self.rna_ancestors()[-1]  # type: ignore
         return shelf
 
-    def save_json(self, force: bool = False) -> Path | None:
-        """
-        Save this author's shelf to its JSON file, if conditions allow it.
-
-        Args:
-            force (bool): Save even when conditions aren't met.
-
-        Returns:
-            Path | None: Absolute path to the saved JSON file
-        """
-        return self.get_shelf().save_json(force)
-
 
 # Script snippet class
 
@@ -140,16 +87,25 @@ class Author(PropertyGroup):
 class Script(PropertyGroup):
     """Representation of a single script within a shelf"""
 
+    def save(self, context: Context | None = None):
+        """
+        Save to JSON or save userprefs, based on properties.
+
+        Args:
+            context (Context | None)
+        """
+        self.get_shelf().save(context)
+
     display_name: StringProperty(
         name="Name",
         description="The name displayed in the UI",
-        update=update_save_json,
+        update=save,
     )
     icon: EnumProperty(
         items=enum_icons,  # type: ignore
         name="Icon",
         description="The icon representing this script",
-        update=update_save_json,
+        update=save,
     )
     is_available: BoolProperty(
         name="Is Available",
@@ -160,21 +116,6 @@ class Script(PropertyGroup):
         name="File Name",
         description="File name of the Python script within the shelf directory",
     )
-
-    def exists(self) -> bool:
-        """
-        Checks whether this script exists and sets its 'is_available' flag.
-
-
-        Returns:
-            bool: Whether this script exists at expected path or not
-        """
-        if self.get_path().exists():
-            self.is_available = True
-            return True
-
-        self.is_available = False
-        return False
 
     def get_path(self) -> Path:
         """
@@ -198,18 +139,6 @@ class Script(PropertyGroup):
         shelf = self.rna_ancestors()[-1]  # type: ignore
         return shelf
 
-    def save_json(self, force: bool = False) -> Path | None:
-        """
-        Save this script's shelf to its JSON file, if conditions allow it.
-
-        Args:
-            force (bool): Save even when conditions aren't met.
-
-        Returns:
-            Path | None: Absolute path to the saved JSON file
-        """
-        return self.get_shelf().save_json(force)
-
 
 # Shelf class
 
@@ -218,10 +147,51 @@ class Script(PropertyGroup):
 class Shelf(PropertyGroup):
     """Single shelf, directory containing scripts to load and display settings"""
 
+    def save(self, context: Context | None = None):
+        """
+        Save to JSON or save userprefs, based on properties.
+
+        Args:
+            context (Context | None)
+        """
+        if not context:
+            context = bpy.context
+
+        if self.is_available or self.is_locked:
+            return
+
+        elif self.use_json:
+            self.save_json()
+
+        elif hasattr(context, "view_layer"):
+            bpy.ops.wm.save_userpref()
+
+    def update_directory(self, context: Context):
+        """
+        Re-scans scripts on any directory change. Saves userprefs.
+
+        Args:
+            context (Context)
+        """
+        if self.directory:
+            # Make sure the path is normalized
+            posix_path = Path(self.directory).resolve().as_posix()
+
+            # Set the posix path; this will trigger another update so return
+            if self.directory != posix_path:
+                self.directory = posix_path
+                return
+
+            # Re-initialize scripts
+            self.initialize()
+
+        # Save JSON or user preferences
+        self.save(context)
+
     align: BoolProperty(
         name="Align Buttons",
         description="Align all buttons and remove all padding for the whole shelf",
-        update=update_save_json,
+        update=save,
     )
     authors: CollectionProperty(
         type=Author,
@@ -234,7 +204,7 @@ class Shelf(PropertyGroup):
         default=1,
         min=1,
         soft_max=8,
-        update=update_save_json,
+        update=save,
     )
     directory: StringProperty(
         name="Directory",
@@ -247,82 +217,82 @@ class Shelf(PropertyGroup):
         name="3D Viewport",
         description="Whether to show this shelf in the 3D viewport",
         default=True,
-        update=update_save_json,
+        update=save,
     )
     enabled_image_editor: BoolProperty(
         name="Image Editor",
         description="Whether to show this shelf in the image editor",
-        update=update_save_json,
+        update=save,
     )
     enabled_uv: BoolProperty(
         name="UV Editor",
         description="Whether to show this shelf in the UV editor",
-        update=update_save_json,
+        update=save,
     )
     enabled_compositornodetree: BoolProperty(
         name="Compositor",
         description="Whether to show this shelf in the compositor",
-        update=update_save_json,
+        update=save,
     )
     enabled_texturenodetree: BoolProperty(
         name="Texture Node Editor",
         description="Whether to show this shelf in the texture node editor",
-        update=update_save_json,
+        update=save,
     )
     enabled_geometrynodetree: BoolProperty(
         name="Geometry Node Editor",
         description="Whether to show this shelf in the geomoetry node editor",
-        update=update_save_json,
+        update=save,
     )
     enabled_shadernodetree: BoolProperty(
         name="Shader Editor",
         description="Whether to show this shelf in the shader editor",
-        update=update_save_json,
+        update=save,
     )
     enabled_sequence_editor: BoolProperty(
         name="Video Sequencer",
         description="Whether to show this shelf in the sequence editor",
-        update=update_save_json,
+        update=save,
     )
     enabled_clip_editor: BoolProperty(
         name="Movie Clip Editor",
         description="Whether to show this shelf in the video clip editor",
-        update=update_save_json,
+        update=save,
     )
     enabled_dopesheet: BoolProperty(
         name="Dope Sheet",
         description="Whether to show this shelf in the dope sheet",
-        update=update_save_json,
+        update=save,
     )
     enabled_timeline: BoolProperty(
         name="Timeline",
         description="Whether to show this shelf in the timeline",
-        update=update_save_json,
+        update=save,
     )
     enabled_fcurves: BoolProperty(
         name="Graph Editor",
         description="Whether to show this shelf in the graph editor",
-        update=update_save_json,
+        update=save,
     )
     enabled_drivers: BoolProperty(
         name="Drivers",
         description="Whether to show this shelf in the drivers editor",
-        update=update_save_json,
+        update=save,
     )
     enabled_nla_editor: BoolProperty(
         name="Nonlinear Animation",
         description="Whether to show this shelf in the NLA editor",
-        update=update_save_json,
+        update=save,
     )
     enabled_text_editor: BoolProperty(
         name="Text Editor",
         description="Whether to show this shelf in the text editor",
-        update=update_save_json,
+        update=save,
     )
     enabled_spreadsheet: BoolProperty(
         name="Spreadsheet",
         description="Whether to show this shelf in the spreadsheet",
-        update=update_save_json,
+        update=save,
     )
 
     height: FloatProperty(
@@ -331,13 +301,13 @@ class Shelf(PropertyGroup):
         default=1.0,
         min=0.5,
         soft_max=8.0,
-        update=update_save_json,
+        update=save,
     )
     icon: EnumProperty(
         items=enum_icons,  # type: ignore
         name="Icon",
         description="The icon representing this shelf",
-        update=update_save_json,
+        update=save,
     )
     is_available: BoolProperty(
         name="Is Available",
@@ -355,7 +325,7 @@ class Shelf(PropertyGroup):
     name: StringProperty(
         name="Name",
         description="Name of this shelf, will be used for the UI",
-        update=update_save_json,
+        update=save,
     )
     scripts: CollectionProperty(
         type=Script,
@@ -371,7 +341,7 @@ class Shelf(PropertyGroup):
         name="Save to JSON",
         description="Save this shelf to a JSON file or in Blender's preferences only",
         default=True,
-        update=update_save_json,
+        update=save,
     )
 
     def exists(self) -> bool:
@@ -438,9 +408,9 @@ class Shelf(PropertyGroup):
                 script.display_name = script_file.stem
                 has_new_scripts = True
 
-        # Save new sscripts to JSON
+        # Save new scripts
         if has_new_scripts:
-            self.save_json()
+            self.save()
 
     def is_unlockable(self) -> bool:
         """

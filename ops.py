@@ -87,7 +87,7 @@ class SHELFMADE_OT_AddAuthor(Operator):
         author = shelf.authors.add()
         if len(shelf.authors) == 1:
             author.name = utils.get_user()
-            shelf.save_json()
+            shelf.save(context)
 
         # Redraw UI
         context.area.tag_redraw()
@@ -473,7 +473,7 @@ class SHELFMADE_OT_EditShelfLock(Operator):
                 has_removed_empty = True
 
         if has_removed_empty:
-            shelf.save_json()
+            shelf.save(context)
 
     def execute(self, context: Context) -> set[OperatorReturnItems]:
         """
@@ -609,11 +609,8 @@ class SHELFMADE_OT_MoveScript(Operator):
         # Move
         scripts.move(current_index, new_index)
 
-        # Save to JSON
-        shelf.save_json()
-
-        # Save user preferences
-        bpy.ops.wm.save_userpref()
+        # Save
+        shelf.save(context)
 
         return {"FINISHED"}
 
@@ -862,7 +859,7 @@ class SHELFMADE_OT_RemoveAuthor(Operator):
         # Remove author
         shelf = preferences.Preferences.this().shelves[self.index]
         shelf.authors.remove(self.author_index)
-        shelf.save_json()
+        shelf.save(context)
 
         # Redraw UI
         context.area.tag_redraw()

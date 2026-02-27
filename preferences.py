@@ -24,7 +24,6 @@ class Preferences(AddonPreferences):
     show_menus: BoolProperty(
         name="Show Menus",
         description="Display shelf menus in UI panels",
-        update=shelf.update_save_userpref,
     )
     shelves: CollectionProperty(
         type=shelf.Shelf,
