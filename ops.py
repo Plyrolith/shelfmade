@@ -925,11 +925,10 @@ class SHELFMADE_OT_RenameScript(Operator):
 
     index: IntProperty(name="Shelf Index", description="Position of the shelf")
     script: StringProperty(name="Script Name", description="Name of the script")
-    name: StringProperty(name="New Name", description="New display name for the script")
 
     def invoke(self, context: Context, event: Event) -> set[OperatorReturnItems]:
         """
-        Store the current script name and invoke the operator properties dialog.
+        Invoke the name popup.
 
         Args:
             context (Context)
@@ -938,17 +937,7 @@ class SHELFMADE_OT_RenameScript(Operator):
         Returns:
             set[OperatorReturnItems]
         """
-        if TYPE_CHECKING:
-            script: shelf.Script
-            shelf: shelf.Shelf
-
-        # Store current name
-        shelf = preferences.Preferences.this().shelves[self.index]
-        script = shelf.scripts[self.script]
-        self.name = script.display_name
-
-        # Draw dialog
-        return context.window_manager.invoke_props_dialog(self, confirm_text="Save")
+        return context.window_manager.invoke_popup(self, width=200)
 
     def draw(self, context: Context):
         """
@@ -961,6 +950,10 @@ class SHELFMADE_OT_RenameScript(Operator):
         if TYPE_CHECKING:
             script: shelf.Script
             shelf: shelf.Shelf
+
+        layout = self.layout
+        layout.row().label(text=self.bl_label)
+        layout.separator(type="LINE")
 
         layout = self.layout
         shelf = preferences.Preferences.this().shelves[self.index]
@@ -976,12 +969,11 @@ class SHELFMADE_OT_RenameScript(Operator):
         row_new = layout.row()
         row_new.activate_init = True
         row_new.label(text="", icon="FILE_TEXT")
-        row_new.prop(self, "name", text="")
+        row_new.prop(script, "display_name", text="")
 
     def execute(self, context: Context) -> set[OperatorReturnItems]:
         """
-        Rename a script, save user preferences and redraw the current area.
-        The target script is chosen by shelf index and script name.
+        Dummy.
 
         Args:
             context (Context)
@@ -989,25 +981,6 @@ class SHELFMADE_OT_RenameScript(Operator):
         Returns:
             set[OperatorReturnItems]
         """
-        if TYPE_CHECKING:
-            script: shelf.Script
-            shelf: shelf.Shelf
-
-        # Avoid empty name
-        if not self.name:
-            return {"CANCELLED"}
-
-        # Rename
-        shelf = preferences.Preferences.this().shelves[self.index]
-        script = shelf.scripts[self.script]
-        script.display_name = self.name
-
-        # Save user preferences
-        bpy.ops.wm.save_userpref()
-
-        # Redraw UI
-        context.area.tag_redraw()
-
         return {"FINISHED"}
 
 
@@ -1019,11 +992,10 @@ class SHELFMADE_OT_RenameShelf(Operator):
     bl_options = {"INTERNAL"}
 
     index: IntProperty(name="Shelf Index", description="Position of the shelf")
-    name: StringProperty(name="New Name", description="New display name for the shelf")
 
     def invoke(self, context: Context, event: Event) -> set[OperatorReturnItems]:
         """
-        Store the current shelf name and invoke the operator properties dialog.
+        Invoke the name popup.
 
         Args:
             context (Context)
@@ -1032,29 +1004,30 @@ class SHELFMADE_OT_RenameShelf(Operator):
         Returns:
             set[OperatorReturnItems]
         """
-        # Store current name
-        self.name = preferences.Preferences.this().shelves[self.index].name
-
-        # Draw dialog
-        return context.window_manager.invoke_props_dialog(self, confirm_text="Save")
+        return context.window_manager.invoke_popup(self, width=200)
 
     def draw(self, context: Context):
         """
-        Draw the user input field for a new shelf display name.
+        Draw the user input field for the shelf display name.
 
         Args:
             context (Context)
         """
+        layout = self.layout
+        layout.row().label(text=self.bl_label)
+        layout.separator(type="LINE")
+
+        shelf = preferences.Preferences.this().shelves[self.index]
+
         # Shelf name
         row_new = self.layout.row()
         row_new.activate_init = True
         row_new.label(text="", icon="FILE_TEXT")
-        row_new.prop(self, "name", text="")
+        row_new.prop(shelf, "name", text="")
 
     def execute(self, context: Context) -> set[OperatorReturnItems]:
         """
-        Rename a shelf. Save user preferences and redraw the current area.
-        The target shelf is chosen by index.
+        Dummy.
 
         Args:
             context (Context)
@@ -1062,19 +1035,6 @@ class SHELFMADE_OT_RenameShelf(Operator):
         Returns:
             set[OperatorReturnItems]
         """
-        # Avoid empty name
-        if not self.name:
-            return {"CANCELLED"}
-
-        # Rename
-        preferences.Preferences.this().shelves[self.index].name = self.name
-
-        # Save user preferences
-        bpy.ops.wm.save_userpref()
-
-        # Redraw UI
-        context.area.tag_redraw()
-
         return {"FINISHED"}
 
 
