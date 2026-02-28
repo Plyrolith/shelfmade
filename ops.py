@@ -522,7 +522,7 @@ class SHELFMADE_OT_EditShelfVisibility(Operator):
         layout = self.layout
         layout.row().label(text=self.bl_label)
         layout.separator(type="LINE")
-        draw.shelf_visibility(panel=self, context=context, index=self.index)
+        draw.shelf_visibility(self, context, self.index)
 
     def cancel(self, context: Context):
         """
