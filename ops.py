@@ -16,49 +16,6 @@ from bpy_extras import io_utils
 from . import catalog, draw, preferences, shelf, utils
 
 
-# Enumerators
-
-
-def enum_shelves(
-    operator: SHELFMADE_OT_SaveTextToShelf,
-    context: Context,
-) -> list[tuple[str, str, str, str, int]]:
-    """
-    Return the enumerator containing all availble shelves.
-
-    Args:
-        operator (SHELFMADE_OT_SetScriptIcon | SHELFMADE_OT_SetShelfIcon)
-        context (Context)
-
-    Returns:
-        list[tuple[str, str, str, str, int]]:
-          Blender enumerator tuple list; each tuple containing
-          - identifier (str)
-          - name (str)
-          - description (str)
-          - icon (str)
-          - index (int)
-    """
-    if TYPE_CHECKING:
-        shelves: list[shelf.Shelf]
-
-    shelves = preferences.Preferences.this().shelves
-
-    # No shelves available
-    if not shelves:
-        return [("NONE", "No Shelf Available", "Add a shelf first", "NONE", 0)]
-
-    # List of shelves
-    return [
-        (str(idx), shelf.name, shelf.name, shelf.icon, idx)
-        for idx, shelf in enumerate(shelves)
-        if shelf.is_available
-    ]
-
-
-# Operators
-
-
 @catalog.bpy_register
 class SHELFMADE_OT_AddAuthor(Operator):
     bl_idname = "shelfmade.add_author"
@@ -1159,6 +1116,39 @@ class SHELFMADE_OT_SaveTextToShelf(Operator):
     bl_label = "Save To Shelf"
     bl_description = "Save this text datablock to a shelf directory"
     bl_options = {"INTERNAL"}
+
+    def enum_shelves(self, context: Context) -> list[tuple[str, str, str, str, int]]:
+        """
+        Return the enumerator containing all availble shelves.
+
+        Args:
+            operator (SHELFMADE_OT_SetScriptIcon | SHELFMADE_OT_SetShelfIcon)
+            context (Context)
+
+        Returns:
+            list[tuple[str, str, str, str, int]]:
+            Blender enumerator tuple list; each tuple containing
+            - identifier (str)
+            - name (str)
+            - description (str)
+            - icon (str)
+            - index (int)
+        """
+        if TYPE_CHECKING:
+            shelves: list[shelf.Shelf]
+
+        shelves = preferences.Preferences.this().shelves
+
+        # No shelves available
+        if not shelves:
+            return [("NONE", "No Shelf Available", "Add a shelf first", "NONE", 0)]
+
+        # List of shelves
+        return [
+            (str(idx), shelf.name, shelf.name, shelf.icon, idx)
+            for idx, shelf in enumerate(shelves)
+            if shelf.is_available
+        ]
 
     shelf: EnumProperty(
         items=enum_shelves,  # type: ignore
