@@ -262,12 +262,11 @@ def script_options(
     row_height.prop(script, "height", slider=True)
 
     # Separator
-    row_sep = box_display.row()
-    row_sep.prop(script, "spacing", text="Spacing", expand=True)
+    row_spacing = box_display.row()
+    row_spacing.prop(script, "spacing", text="Spacing", expand=True)
 
     # Disable unavailable options
-    row_attach.enabled = row_sep.enabled = nb_position != 0
-    row_height.enabled = nb_position == 0 or not script.use_attach
+    row_attach.enabled = row_spacing.enabled = nb_position != 0
 
     layout.separator()
 
@@ -375,7 +374,6 @@ def shelf_scripts(panel: Panel | Operator, context: Context):
 
                         # Create main UI row
                         row_main = col_shelf.row(align=True)
-                        row_main.scale_y = script.height
 
                     # Separate from last button in row
                     elif script.spacing != "ALIGN":
@@ -387,6 +385,7 @@ def shelf_scripts(panel: Panel | Operator, context: Context):
                     # Script operator
                     row_op = row_main.row(align=True)  # type: ignore
                     row_op.operator_context = "EXEC_DEFAULT"
+                    row_op.scale_y = script.height
                     row_op.alert = script.is_focused
                     op_script = row_op.operator(
                         "wm.run_script",
