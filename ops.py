@@ -16,6 +16,15 @@ from bpy_extras import io_utils
 from . import catalog, draw, preferences, shelf, utils
 
 
+icon_prop = EnumProperty(
+    items=utils.enum_icons,  # type: ignore
+    name="Icon",
+    description="Name of the icon to set",
+)
+index_prop = IntProperty(name="Shelf Index", description="Position of the shelf")
+script_prop = StringProperty(name="Script Name", description="Name of the script")
+
+
 @catalog.bpy_register
 class SHELFMADE_OT_AddAuthor(Operator):
     bl_idname = "shelfmade.add_author"
@@ -23,7 +32,7 @@ class SHELFMADE_OT_AddAuthor(Operator):
     bl_description = "Add a user with edit permissions to this shelf"
     bl_options = {"INTERNAL"}
 
-    index: IntProperty(name="Shelf Index", description="Position of the shelf")
+    index: index_prop
 
     def execute(self, context: Context) -> set[OperatorReturnItems]:
         """
@@ -163,111 +172,16 @@ class SHELFMADE_OT_CleanShelves(Operator):
 
 
 @catalog.bpy_register
-class SHELFMADE_OT_CallScriptMenu(Operator):
-    bl_idname = "shelfmade.call_script_menu"
-    bl_label = "Call Script Menu"
-    bl_options = {"INTERNAL"}
-
-    index: IntProperty(name="Shelf Index", description="Position of the script's shelf")
-    script: StringProperty(name="Script Name", description="Name of the script")
-    mode: EnumProperty(
-        items=(
-            ("RENAME", "Rename...", "Rename this script", "BLANK1", 0),
-            ("ICON", "Set Icon...", "Set this script's icon", "BLANK1", 1),
-            ("OPEN", "Open Script", "Open this script in the editor", "BLANK1", 2),
-            ("UP", "Move Up", "Move this script up in the list", "TRIA_UP", 3),
-            ("DOWN", "Move Down", "Move this script down in the list", "TRIA_DOWN", 4),
-        ),
-        name="Mode",
-        description="Action to perform on the script",
-    )
-
-    @classmethod
-    def description(cls, context: Context, properties: OperatorProperties) -> str:
-        """
-        Generate a description for the menu.
-
-        Args:
-            context (Context)
-            properties (OperatorProperties)
-
-        Returns:
-            str: Operator description
-        """
-        match properties.mode:
-            case "RENAME":
-                return SHELFMADE_OT_RenameScript.bl_description
-            case "ICON":
-                return SHELFMADE_OT_SetScriptIcon.bl_description
-            case "OPEN":
-                return SHELFMADE_OT_OpenScript.bl_description
-            case "DOWN":
-                return SHELFMADE_OT_MoveScript.bl_description + ": Down"
-            case "UP":
-                return SHELFMADE_OT_MoveScript.bl_description + ": Up"
-            case _:
-                return "Open the menu for this script"
-
-    def execute(self, context: Context) -> set[OperatorReturnItems]:
-        """
-        Run one of the script-editing operators based on the operator's mode enumerator.
-        The target script is chosen by shelf index and script name.
-
-        Args:
-            context (Context)
-
-        Returns:
-            set[OperatorReturnItems]
-        """
-        if TYPE_CHECKING:
-            script: shelf.Script
-
-        match self.mode:
-            case "RENAME":
-                bpy.ops.shelfmade.rename_script(  # type: ignore
-                    "INVOKE_DEFAULT",
-                    index=self.index,
-                    script=self.script,
-                )
-
-            case "ICON":
-                bpy.ops.shelfmade.set_script_icon(  # type: ignore
-                    "INVOKE_DEFAULT",
-                    index=self.index,
-                    script=self.script,
-                )
-
-            case "OPEN":
-                shelf = preferences.Preferences.this().shelves[self.index]
-                script = shelf.scripts[self.script]
-                bpy.ops.wm.open_script(  # type: ignore
-                    "EXEC_DEFAULT",
-                    filepath=script.get_path().as_posix(),
-                )
-
-            case "DOWN" | "UP":
-                bpy.ops.shelfmade.move_script(  # type: ignore
-                    "EXEC_DEFAULT",
-                    index=self.index,
-                    script=self.script,
-                    direction=self.mode,
-                )
-
-        return {"FINISHED"}
-
-
-@catalog.bpy_register
 class SHELFMADE_OT_CallShelfMenu(Operator):
     bl_idname = "shelfmade.call_shelf_menu"
     bl_label = "Call Shelf Menu"
     bl_options = {"INTERNAL"}
 
-    index: IntProperty(name="Shelf Index", description="Position of the shelf")
+    index: index_prop
     mode: EnumProperty(
         items=(
             ("RENAME", "Rename...", "Rename this shelf", "BLANK1", 0),
             ("ICON", "Set Icon...", "Set this shelf's icon", "BLANK1", 1),
-            ("OPEN", "Open Folder", "Open this shelf's folder", "BLANK1", 3),
             (
                 "VISIBILITY",
                 "Display Options...",
@@ -275,6 +189,7 @@ class SHELFMADE_OT_CallShelfMenu(Operator):
                 "VIS_SEL_11",
                 2,
             ),
+            ("OPEN", "Open Folder", "Open this shelf's folder", "BLANK1", 3),
             ("LOCK", "Lock...", "Edit lock options", "BLANK1", 4),
             ("REMOVE", "Remove", "Remove this shelf", "X", 5),
             ("UP", "Move Up", "Move this shelf up in the list", "TRIA_UP", 6),
@@ -378,10 +293,10 @@ class SHELFMADE_OT_CallShelfMenu(Operator):
 class SHELFMADE_OT_EditShelfLock(Operator):
     bl_idname = "shelfmade.edit_shelf_lock"
     bl_label = "Edit Shelf Lock"
-    bl_description = "Open shelf's lock settings"
+    bl_description = "Open this shelf's lock settings"
     bl_options = {"INTERNAL"}
 
-    index: IntProperty(name="Shelf Index", description="Position of the shelf")
+    index: index_prop
 
     def invoke(self, context: Context, event: Event) -> set[OperatorReturnItems]:
         """
@@ -450,10 +365,10 @@ class SHELFMADE_OT_EditShelfLock(Operator):
 class SHELFMADE_OT_EditShelfVisibility(Operator):
     bl_idname = "shelfmade.edit_shelf_visibility"
     bl_label = "Edit Shelf Visibility"
-    bl_description = "Open shelf's panel visibility & display settings"
+    bl_description = "Open this shelf's panel visibility & display settings"
     bl_options = {"INTERNAL"}
 
-    index: IntProperty(name="Shelf Index", description="Position of the shelf")
+    index: index_prop
 
     def invoke(self, context: Context, event: Event) -> set[OperatorReturnItems]:
         """
@@ -470,8 +385,7 @@ class SHELFMADE_OT_EditShelfVisibility(Operator):
 
     def draw(self, context: Context):
         """
-        Draw a dialog containing shelf visiblity options. These include settings for
-        size, column count and area visibility toggles.
+        Draw a dialog containing shelf visiblity options.
 
         Args:
             context (Context)
@@ -481,20 +395,9 @@ class SHELFMADE_OT_EditShelfVisibility(Operator):
         layout.separator(type="LINE")
         draw.shelf_visibility(self, context, self.index)
 
-    def cancel(self, context: Context):
-        """
-        Remove empty authors.
-        Save the shelf after settings may have changed in the draw phase.
-
-        Args:
-            context (Context)
-        """
-        # Save user preferences
-        bpy.ops.wm.save_userpref()
-
     def execute(self, context: Context) -> set[OperatorReturnItems]:
         """
-        Save user preferences after the visibility may have changed in the draw phase.
+        Dummy.
 
         Args:
             context (Context)
@@ -502,7 +405,6 @@ class SHELFMADE_OT_EditShelfVisibility(Operator):
         Returns:
             set[OperatorReturnItems]
         """
-        self.cancel(context)
         return {"FINISHED"}
 
 
@@ -513,8 +415,8 @@ class SHELFMADE_OT_MoveScript(Operator):
     bl_description = "Move this script's position within its shelf"
     bl_options = {"INTERNAL"}
 
-    index: IntProperty(name="Shelf Index", description="Position of the shelf")
-    script: StringProperty(name="Script Name", description="Name of the script")
+    index: index_prop
+    script: script_prop
     direction: EnumProperty(
         items=(
             ("UP", "Up", "Up", "TRIA_UP", 0),
@@ -536,7 +438,7 @@ class SHELFMADE_OT_MoveScript(Operator):
         Returns:
             str: Operator description
         """
-        return f"Move this script {properties.mode.lower()} within the shelf"
+        return f"Move this script {properties.direction.lower()} within the shelf"
 
     def execute(self, context: Context) -> set[OperatorReturnItems]:
         """
@@ -569,6 +471,9 @@ class SHELFMADE_OT_MoveScript(Operator):
         # Save
         shelf.save(context)
 
+        # Redraw UI
+        context.area.tag_redraw()
+
         return {"FINISHED"}
 
 
@@ -579,7 +484,7 @@ class SHELFMADE_OT_MoveShelf(Operator):
     bl_description = "Move this shelf's position within the shelf list"
     bl_options = {"INTERNAL"}
 
-    index: IntProperty(name="Shelf Index", description="Position of the shelf")
+    index: index_prop
     direction: EnumProperty(
         items=(
             ("UP", "Up", "Up", "TRIA_UP", 0),
@@ -651,6 +556,9 @@ class SHELFMADE_OT_MoveShelf(Operator):
 
         # Save user preferences
         bpy.ops.wm.save_userpref()
+
+        # Redraw UI
+        context.area.tag_redraw()
 
         return {"FINISHED"}
 
@@ -784,7 +692,7 @@ class SHELFMADE_OT_RemoveAuthor(Operator):
     bl_description = "Remove the author from the shelf"
     bl_options = {"INTERNAL"}
 
-    index: IntProperty(name="Shelf Index", description="Position of the shelf")
+    index: index_prop
     author_index: IntProperty(name="Author Index", description="Position of the author")
 
     def invoke(self, context: Context, event: Event) -> set[OperatorReturnItems]:
@@ -831,7 +739,7 @@ class SHELFMADE_OT_RemoveShelf(Operator):
     bl_description = "Remove this shelf (does not delete any files)"
     bl_options = {"INTERNAL"}
 
-    index: IntProperty(name="Shelf Index", description="Position of the shelf")
+    index: index_prop
 
     def invoke(self, context: Context, event: Event) -> set[OperatorReturnItems]:
         """
@@ -874,81 +782,13 @@ class SHELFMADE_OT_RemoveShelf(Operator):
 
 
 @catalog.bpy_register
-class SHELFMADE_OT_RenameScript(Operator):
-    bl_idname = "shelfmade.rename_script"
-    bl_label = "Rename Script"
-    bl_description = "Change the display name of this script"
-    bl_options = {"INTERNAL"}
-
-    index: IntProperty(name="Shelf Index", description="Position of the shelf")
-    script: StringProperty(name="Script Name", description="Name of the script")
-
-    def invoke(self, context: Context, event: Event) -> set[OperatorReturnItems]:
-        """
-        Invoke the name popup.
-
-        Args:
-            context (Context)
-            event (Event)
-
-        Returns:
-            set[OperatorReturnItems]
-        """
-        return context.window_manager.invoke_popup(self, width=200)
-
-    def draw(self, context: Context):
-        """
-        Draw a dialog displaying the script's file name, as well as an input property
-        for its new display name.
-
-        Args:
-            context (Context)
-        """
-        if TYPE_CHECKING:
-            script: shelf.Script
-            shelf: shelf.Shelf
-
-        layout = self.layout
-        layout.row().label(text=self.bl_label)
-        layout.separator(type="LINE")
-
-        layout = self.layout
-        shelf = preferences.Preferences.this().shelves[self.index]
-        script = shelf.scripts[self.script]
-
-        # Original file name
-        row_original = layout.row()
-        row_original.enabled = False
-        row_original.label(text="", icon="FILE")
-        row_original.prop(script, "name", text="")
-
-        # Script name
-        row_new = layout.row()
-        row_new.activate_init = True
-        row_new.label(text="", icon="FILE_TEXT")
-        row_new.prop(script, "display_name", text="")
-
-    def execute(self, context: Context) -> set[OperatorReturnItems]:
-        """
-        Dummy.
-
-        Args:
-            context (Context)
-
-        Returns:
-            set[OperatorReturnItems]
-        """
-        return {"FINISHED"}
-
-
-@catalog.bpy_register
 class SHELFMADE_OT_RenameShelf(Operator):
     bl_idname = "shelfmade.rename_shelf"
     bl_label = "Rename Shelf"
     bl_description = "Change the display name of this shelf"
     bl_options = {"INTERNAL"}
 
-    index: IntProperty(name="Shelf Index", description="Position of the shelf")
+    index: index_prop
 
     def invoke(self, context: Context, event: Event) -> set[OperatorReturnItems]:
         """
@@ -1006,6 +846,8 @@ class SHELFMADE_OT_RunScript(Operator, io_utils.ImportHelper):
         description="Path to the script file to run",
         subtype="FILE_PATH",
     )
+    index: index_prop
+    script: script_prop
 
     @classmethod
     def description(cls, context: Context, properties: OperatorProperties) -> str:
@@ -1226,13 +1068,9 @@ class SHELFMADE_OT_SetScriptIcon(Operator):
     bl_options = {"INTERNAL"}
     bl_property = "icon"
 
-    index: IntProperty(name="Shelf Index", description="Position of the shelf")
-    script: StringProperty(name="Script Name", description="Name of the script")
-    icon: EnumProperty(
-        items=utils.enum_icons,  # type: ignore
-        name="Icon",
-        description="Name of the icon to set for the script",
-    )
+    index: index_prop
+    script: script_prop
+    icon: icon_prop
 
     def invoke(self, context: Context, event: Event) -> set[OperatorReturnItems]:
         """
@@ -1296,12 +1134,8 @@ class SHELFMADE_OT_SetShelfIcon(Operator):
     bl_options = {"INTERNAL"}
     bl_property = "icon"
 
-    index: IntProperty(name="Shelf Index", description="Position of the shelf")
-    icon: EnumProperty(
-        items=utils.enum_icons,  # type: ignore
-        name="Icon",
-        description="Name of the icon to set for the shelf",
-    )
+    index: index_prop
+    icon: icon_prop
 
     def invoke(self, context: Context, event: Event) -> set[OperatorReturnItems]:
         """
@@ -1342,4 +1176,81 @@ class SHELFMADE_OT_SetShelfIcon(Operator):
         # Redraw UI
         context.area.tag_redraw()
 
+        return {"FINISHED"}
+
+
+@catalog.bpy_register
+class SHELFMADE_OT_ShowScriptOptions(Operator):
+    bl_idname = "shelfmade.show_script_options"
+    bl_label = "Show Script Options"
+    bl_description = "Show this script's display settings"
+    bl_options = {"INTERNAL"}
+
+    index: index_prop
+    script: script_prop
+
+    def invoke(self, context: Context, event: Event) -> set[OperatorReturnItems]:
+        """
+        Invoke this operator's properties dialog.
+
+        Args:
+            context (Context)
+            event (Event)
+
+        Returns:
+            set[OperatorReturnItems]
+        """
+        if TYPE_CHECKING:
+            script: shelf.Script
+            shelf: shelf.Shelf
+
+        # Set focus on script
+        shelf = preferences.Preferences.this().shelves[self.index]
+        script = shelf.scripts[self.script]
+        script.is_focused = True
+
+        return context.window_manager.invoke_popup(self, width=200)
+
+    def draw(self, context: Context):
+        """
+        Draw a dialog containing script visiblity options.
+
+        Args:
+            context (Context)
+        """
+        layout = self.layout
+        layout.row().label(text=self.script)
+        layout.separator(type="LINE")
+        draw.script_options(self, context, self.index, self.script)
+
+    def cancel(self, context: Context):
+        """
+        Unset script UI focus.
+
+        Args:
+            context (Context)
+        """
+        if TYPE_CHECKING:
+            script: shelf.Script
+            shelf: shelf.Shelf
+
+        # Unset focus on script
+        shelf = preferences.Preferences.this().shelves[self.index]
+        script = shelf.scripts[self.script]
+        script.is_focused = False
+
+        # Redraw UI
+        context.area.tag_redraw()
+
+    def execute(self, context: Context) -> set[OperatorReturnItems]:
+        """
+        Unset script UI focus.
+
+        Args:
+            context (Context)
+
+        Returns:
+            set[OperatorReturnItems]
+        """
+        self.cancel(context)
         return {"FINISHED"}

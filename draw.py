@@ -44,6 +44,65 @@ AREA_TYPES: dict[str, IconItems] = {
 }
 
 
+def foldout(
+    layout: UILayout,
+    data: bpy_struct,
+    property: str,
+    *,
+    text: str | None = None,
+    alignment: Literal["LEFT", "CENTER", "RIGHT"] = "LEFT",
+    icon: IconItems | None = None,
+) -> bool:
+    """
+    Draw a foldout control in the current UI.
+
+    Args:
+        layout (UILayout): Layout to draw at
+        data (bpy_struct): Host struct of the bool prop that holds the collapse status
+        property (str): Name of bool property that holds the collapse status
+        text (str | None): Alternative text for label
+        alignment (str):
+          - LEFT
+          - CENTER
+          - RIGHT
+        icon (str | None): Draw an additional icon
+
+    Returns:
+        bool: Whether the foldout should be drawn or not
+    """
+    enabled = bool(getattr(data, property))
+
+    row_main = layout.row(align=True)
+
+    # Button, add text if left
+    has_icon = icon is not None and icon != "NONE"
+    row_button = row_main.row(align=True)
+    row_button.alignment = "LEFT"
+    row_button.prop(
+        data,
+        property,
+        text=text if alignment == "LEFT" and not has_icon else "",
+        icon_only=False if alignment == "LEFT" or has_icon else True,
+        icon="DOWNARROW_HLT" if enabled else "RIGHTARROW",
+        emboss=False,
+    )
+
+    # Text in separate property if not left aligned, to be able to separate from button
+    if alignment != "LEFT" or icon:
+        row_text = row_main.row(align=True)
+        row_text.alignment = alignment
+        row_text.prop(
+            data,
+            property,
+            text=text,
+            icon=icon,
+            toggle=True,
+            emboss=False,
+        )
+
+    return enabled
+
+
 def local_scripts(panel: Panel | Operator, context: Context):
     """
     Draw all python script text datablocks found in the currently loaded blend file.
@@ -155,10 +214,85 @@ def shelf_lock(panel: Panel | Operator, context: Context, index: int):
             row_remove.enabled = False
 
 
+def script_options(
+    panel: Panel | Operator,
+    context: Context,
+    index: int,
+    script: str,
+):
+    """
+    Draw an interface containing script display options.
+
+    Args:
+        panel (Panel | Operator)
+        context (Context)
+        shelf (int): Index of the shelf containing the script
+        script (str): Name of the script whose settings are drawn
+    """
+    if TYPE_CHECKING:
+        script: Script
+
+    scripts = preferences.Preferences.this().shelves[index].scripts
+    nb_position = scripts.find(script)
+
+    script = scripts[script]
+    layout = panel.layout
+
+    # Name & icon
+    row_name = layout.row(align=True)
+    row_name.operator_context = "INVOKE_DEFAULT"
+    op_icon = row_name.operator(
+        "shelfmade.set_script_icon",
+        text="",
+        icon="BLANK1" if script.icon == "NONE" else script.icon,
+    )
+    op_icon.index = index
+    op_icon.script = script.name
+    row_name.prop(script, "display_name", text="")
+
+    layout.separator()
+    box_display = layout.box()
+
+    # Attach
+    row_attach = box_display.row()
+    row_attach.prop(script, "use_attach", text="Attach to Previous Row")
+
+    # Height
+    row_height = box_display.row()
+    row_height.prop(script, "height", slider=True)
+
+    # Separator
+    row_sep = box_display.row()
+    row_sep.prop(script, "spacing", text="Spacing", expand=True)
+
+    # Disable unavailable options
+    row_attach.enabled = row_sep.enabled = nb_position != 0
+    row_height.enabled = nb_position == 0 or not script.use_attach
+
+    layout.separator()
+
+    # Move
+    op_up = layout.operator(
+        "shelfmade.move_script",
+        text="Move Up",
+        icon="TRIA_UP",
+    )
+    op_up.index = index
+    op_up.script = script.name
+    op_up.direction = "UP"
+    op_down = layout.operator(
+        "shelfmade.move_script",
+        text="Move Down",
+        icon="TRIA_DOWN",
+    )
+    op_down.index = index
+    op_down.script = script.name
+    op_down.direction = "DOWN"
+
+
 def shelf_visibility(panel: Panel | Operator, context: Context, index: int):
     """
-    Draw an interface containing shelf visiblity options. These include settings for
-    size, column count and area visibility toggles.
+    Draw an interface containing shelf visiblity options.
 
     Args:
         panel (Panel | Operator)
@@ -170,14 +304,6 @@ def shelf_visibility(panel: Panel | Operator, context: Context, index: int):
 
     shelf = preferences.Preferences.this().shelves[index]
     layout = panel.layout
-
-    # Size and columns
-    box_size = layout.box()
-    box_size.prop(shelf, "height", slider=True)
-    box_size.prop(shelf, "columns")
-    row_align = box_size.row()
-    row_align.alignment = "CENTER"
-    row_align.prop(shelf, "align")
 
     # Area type toggles
     col_areas = layout.column()
@@ -205,7 +331,7 @@ def shelf_scripts(panel: Panel | Operator, context: Context):
     if TYPE_CHECKING:
         script: Script
         shelf: Shelf
-        row_script: UILayout
+        row_main: UILayout
 
     layout = panel.layout
     prefs = preferences.Preferences.this()
@@ -216,14 +342,14 @@ def shelf_scripts(panel: Panel | Operator, context: Context):
 
     # Draw each shelf
     for sh_i, shelf in enumerate(shelves):
-        if not shelf.is_visible(context=context):
+        if not shelf.is_visible(context):
             continue
 
-        box_shelf = layout.box()
-        row_title = box_shelf.row()
+        col_shelf = layout.box().column(align=True)
+        row_title = col_shelf.row()
 
         # Shelf title & expander
-        if show_layout(
+        if foldout(
             row_title,
             shelf,
             "show_scripts",
@@ -234,43 +360,57 @@ def shelf_scripts(panel: Panel | Operator, context: Context):
             # Don't draw if scripts are empty
             scripts = [s for s in shelf.scripts if s.is_available]
             if scripts:
-                # Generate grid flow
-                grid_shelf = box_shelf.grid_flow(
-                    columns=shelf.columns,
-                    even_columns=True,
-                    even_rows=True,
-                    align=shelf.align,
-                )
-                columns = []
-                for _ in range(0, shelf.columns):
-                    columns.append(grid_shelf.column(align=shelf.align))
-
                 # Draw script buttons
                 for sc_i, script in enumerate(scripts):
-                    # Assign to column & set height
-                    row_script = columns[sc_i % shelf.columns].row(align=True)
-                    row_script.scale_y = shelf.height
+                    # Create script row and set height
+                    if sc_i == 0 or not script.use_attach:
+                        # Separate from last row
+                        if sc_i == 0:
+                            col_shelf.separator()
+                        elif script.spacing != "ALIGN":
+                            col_shelf.separator(
+                                factor=2 if script.spacing in {"SPACE", "LINE"} else 1,
+                                type="LINE" if script.spacing == "LINE" else "SPACE",
+                            )
 
-                    # Run script operator
-                    row_script.operator_context = "EXEC_DEFAULT"
-                    row_script.operator(
+                        # Create main UI row
+                        row_main = col_shelf.row(align=True)
+                        row_main.scale_y = script.height
+
+                    # Separate from last button in row
+                    elif script.spacing != "ALIGN":
+                        row_main.separator(  # type: ignore
+                            factor=2 if script.spacing in {"SPACE", "LINE"} else 1,
+                            type="LINE" if script.spacing == "LINE" else "SPACE",
+                        )
+
+                    # Script operator
+                    row_op = row_main.row(align=True)  # type: ignore
+                    row_op.operator_context = "EXEC_DEFAULT"
+                    row_op.alert = script.is_focused
+                    op_script = row_op.operator(
                         "wm.run_script",
                         text=script.display_name,
                         icon=script.icon,
-                    ).filepath = script.get_path().as_posix()
+                    )
+                    op_script.filepath = script.get_path().as_posix()
+                    op_script.index = sh_i
+                    op_script.script = script.name
 
                     # Menu button
                     if not shelf.is_locked and prefs.show_menus:
-                        op_script = row_script.operator_menu_enum(
-                            "shelfmade.call_script_menu",
-                            "mode",
+                        row_op.operator_context = "INVOKE_DEFAULT"
+                        op_script = row_op.operator(
+                            "shelfmade.show_script_options",
                             text="",
+                            icon="DOWNARROW_HLT",
+                            emboss=False,
                         )
                         op_script.index = sh_i
                         op_script.script = script.name
 
             else:
-                row_noscripts = box_shelf.row()
+                row_noscripts = col_shelf.row()
                 row_noscripts.alignment = "CENTER"
                 row_noscripts.label(text="No Scripts Found", icon="GHOST_DISABLED")
 
@@ -294,65 +434,6 @@ def shelf_scripts(panel: Panel | Operator, context: Context):
                 text="",
                 icon="COLLAPSEMENU",
             ).index = sh_i
-
-
-def show_layout(
-    layout: UILayout,
-    data: bpy_struct,
-    property: str,
-    *,
-    text: str | None = None,
-    alignment: Literal["LEFT", "CENTER", "RIGHT"] = "LEFT",
-    icon: IconItems | None = None,
-) -> bool:
-    """
-    Draw a foldout control in the current UI.
-
-    Args:
-        layout (UILayout): Layout to draw at
-        data (bpy_struct): Host struct of the bool prop that holds the collapse status
-        property (str): Name of bool property that holds the collapse status
-        text (str | None): Alternative text for label
-        alignment (str):
-          - LEFT
-          - CENTER
-          - RIGHT
-        icon (str | None): Draw an additional icon
-
-    Returns:
-        bool: Whether the foldout should be drawn or not
-    """
-    enabled = bool(getattr(data, property))
-
-    row_main = layout.row(align=True)
-
-    # Button, add text if left
-    has_icon = icon is not None and icon != "NONE"
-    row_button = row_main.row(align=True)
-    row_button.alignment = "LEFT"
-    row_button.prop(
-        data,
-        property,
-        text=text if alignment == "LEFT" and not has_icon else "",
-        icon_only=False if alignment == "LEFT" or has_icon else True,
-        icon="DOWNARROW_HLT" if enabled else "RIGHTARROW",
-        emboss=False,
-    )
-
-    # Text in separate property if not left aligned, to be able to separate from button
-    if alignment != "LEFT" or icon:
-        row_text = row_main.row(align=True)
-        row_text.alignment = alignment
-        row_text.prop(
-            data,
-            property,
-            text=text,
-            icon=icon,
-            toggle=True,
-            emboss=False,
-        )
-
-    return enabled
 
 
 def text_editor_shelf_menu(panel: Panel | Operator, context: Context):

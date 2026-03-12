@@ -15,7 +15,6 @@ from bpy.props import (
     CollectionProperty,
     EnumProperty,
     FloatProperty,
-    IntProperty,
     StringProperty,
 )
 from bpy.types import PropertyGroup
@@ -74,6 +73,14 @@ class Script(PropertyGroup):
         description="The name displayed in the UI",
         update=save,
     )
+    height: FloatProperty(
+        name="Button Height",
+        description="Height of this script's button row",
+        default=1.0,
+        min=0.5,
+        soft_max=8.0,
+        update=save,
+    )
     icon: EnumProperty(
         items=utils.enum_icons,  # type: ignore
         name="Icon",
@@ -85,9 +92,30 @@ class Script(PropertyGroup):
         description="Whether this script is accessible or not",
         default=True,
     )
+    is_focused: BoolProperty(
+        name="Is Focused",
+        description="This script is focused for editing by an operator",
+    )
     name: StringProperty(
         name="File Name",
         description="File name of the Python script within the shelf directory",
+    )
+    spacing: EnumProperty(
+        items=(
+            ("ALIGN", "Merge", "Merge with previous script"),
+            ("NONE", "Default", "Default spacing"),
+            ("SPACE", "Gap", "Leave a gap after this script"),
+            ("LINE", "Line", "Separate this script with a line from the next one"),
+        ),
+        name="Spacing",
+        description="How this script is separated from the previous script's button",
+        default="NONE",
+        update=save,
+    )
+    use_attach: BoolProperty(
+        name="Attach",
+        description="Attach this script's button to the previous row",
+        update=save,
     )
 
     def get_path(self) -> Path:
@@ -158,23 +186,10 @@ class Shelf(PropertyGroup):
         # Save JSON or user preferences
         self.save(context)
 
-    align: BoolProperty(
-        name="Align Buttons",
-        description="Align all buttons and remove all padding for the whole shelf",
-        update=save,
-    )
     authors: CollectionProperty(
         type=Author,
         name="Authors",
         description="OS users with unlock and edit permissions",
-    )
-    columns: IntProperty(
-        name="Columns",
-        description="Split the shelf's buttons into this number of columns",
-        default=1,
-        min=1,
-        soft_max=8,
-        update=save,
     )
     directory: StringProperty(
         name="Directory",
@@ -265,14 +280,6 @@ class Shelf(PropertyGroup):
         update=save,
     )
 
-    height: FloatProperty(
-        name="Button Height",
-        description="Global height of all script buttons",
-        default=1.0,
-        min=0.5,
-        soft_max=8.0,
-        update=save,
-    )
     icon: EnumProperty(
         items=utils.enum_icons,  # type: ignore
         name="Icon",
@@ -370,6 +377,7 @@ class Shelf(PropertyGroup):
                 if existing_script.name == script_file.name:
                     script = existing_script
                     script.is_available = True
+                    script.is_focused = False
 
             # Create a new script
             if not script:
@@ -516,7 +524,7 @@ class Shelf(PropertyGroup):
         ):
             shelf_dict.pop(shelf_prop, None)
         for script_dict in shelf_dict.get("scripts", []):  # type: ignore
-            for script_prop in ("is_available",):
+            for script_prop in ("is_available", "is_focused"):
                 script_dict.pop(script_prop, None)
 
         return shelf_dict
