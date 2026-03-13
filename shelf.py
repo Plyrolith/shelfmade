@@ -112,6 +112,19 @@ class Script(PropertyGroup):
         default="NONE",
         update=save,
     )
+    style: EnumProperty(
+        items=(
+            ("NONE", "Text Only", "Don't draw a frame for this script's button"),
+            ("ALERT", "Red Text", "Draw red text for this script's button"),
+            ("EMBOSS", "Button", "Draw this script's button with a regular frame"),
+            ("DEPRESS", "Blue Button", "Always draw this script's button depressed"),
+            ("EMBOSS_ALERT", "Red Button", "Draw this script's button in alert state"),
+        ),
+        name="Style",
+        description="Draw style of this script's button",
+        default="EMBOSS",
+        update=save,
+    )
     use_attach: BoolProperty(
         name="Attach",
         description="Attach this script's button to the previous row",

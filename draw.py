@@ -255,18 +255,25 @@ def script_options(
 
     # Attach
     row_attach = box_display.row()
+    row_attach.alignment = "CENTER"
     row_attach.prop(script, "use_attach", text="Attach to Previous Row")
+
+    # Spacing
+    col_spacing = box_display.column()
+    col_spacing.use_property_split = True
+    col_spacing.prop(script, "spacing", expand=True)
+
+    # Styling
+    col_style = box_display.column()
+    col_style.use_property_split = True
+    col_style.prop(script, "style", expand=True)
 
     # Height
     row_height = box_display.row()
     row_height.prop(script, "height", slider=True)
 
-    # Separator
-    row_spacing = box_display.row()
-    row_spacing.prop(script, "spacing", text="Spacing", expand=True)
-
     # Disable unavailable options
-    row_attach.enabled = row_spacing.enabled = nb_position != 0
+    row_attach.enabled = col_spacing.enabled = nb_position != 0
 
     layout.separator()
 
@@ -383,14 +390,22 @@ def shelf_scripts(panel: Panel | Operator, context: Context):
                         )
 
                     # Script operator
-                    row_op = row_main.row(align=True)  # type: ignore
+                    row_script = row_main.row(align=True)  # type: ignore
+                    row_script.scale_y = script.height
+                    row_op = row_script.row(align=True)
                     row_op.operator_context = "EXEC_DEFAULT"
-                    row_op.scale_y = script.height
-                    row_op.alert = script.is_focused
+                    row_op.alert = script.style in {
+                        "ALERT",
+                        "EMBOSS_ALERT",
+                    }
+                    row_op.emboss = (
+                        "NONE" if script.style in {"NONE", "ALERT"} else "NORMAL"
+                    )
                     op_script = row_op.operator(
                         "wm.run_script",
                         text=script.display_name,
                         icon=script.icon,
+                        depress=script.style == "DEPRESS",
                     )
                     op_script.filepath = script.get_path().as_posix()
                     op_script.index = sh_i
@@ -398,11 +413,11 @@ def shelf_scripts(panel: Panel | Operator, context: Context):
 
                     # Menu button
                     if not shelf.is_locked and prefs.show_menus:
-                        row_op.operator_context = "INVOKE_DEFAULT"
-                        op_script = row_op.operator(
+                        row_script.operator_context = "INVOKE_DEFAULT"
+                        op_script = row_script.operator(
                             "shelfmade.show_script_options",
                             text="",
-                            icon="DOWNARROW_HLT",
+                            icon="PROP_ON" if script.is_focused else "DOWNARROW_HLT",
                             emboss=False,
                         )
                         op_script.index = sh_i
