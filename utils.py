@@ -218,6 +218,46 @@ def open_script_file(filepath: str | PathLike) -> Text:
     raise ValueError("Couldn't find newly created text datablock.")
 
 
+def run_script(filepath: str | PathLike, context: Context | None = None):
+    """
+    Load a script file as a text datablock into the current blend file. Run it and
+    remove it right after. Raise any exceptions that might have occured afterwards.
+
+    Args:
+        filepath (str | PathLike): Path to the Python script
+        context (Context | None): Optional Blender context
+    """
+    script_path = Path(filepath)
+    if not script_path.exists():
+        raise FileNotFoundError(f"Script file not found: {filepath}")
+
+    if not context:
+        context = bpy.context
+
+    # Exception store
+    exception = None
+
+    # Run script
+    text = open_script_file(filepath=script_path)
+    with context.temp_override(edit_text=text):
+        try:
+            bpy.ops.text.run_script()
+
+        # If the script causes an exception, store it for later
+        except Exception as e:
+            exception = e
+
+    # Remove script
+    try:
+        bpy.data.texts.remove(text)
+    except ReferenceError:
+        print("Could not delete script, already removed")
+
+    # Raise potential exception after cleanup
+    if exception:
+        raise exception
+
+
 def same_paths(*paths: str | PathLike) -> bool:
     """
     Checks whether given paths point to the same file/folder.

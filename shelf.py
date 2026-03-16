@@ -153,6 +153,17 @@ class Script(PropertyGroup):
         shelf = self.rna_ancestors()[-1]  # type: ignore
         return shelf
 
+    def run(self, context: Context | None = None):
+        """
+        Load this script file as a text datablock into the current blend file. Run it
+        and remove it right after. Raise any exceptions that might have occured
+        afterwards.
+
+        Args:
+            context (Context | None): Optional Blender context
+        """
+        utils.run_script(self.get_path(), context)
+
 
 @catalog.bpy_register
 class Shelf(PropertyGroup):
@@ -532,6 +543,7 @@ class Shelf(PropertyGroup):
             "is_available",
             "is_locked",
             "json_filename",
+            "show_hidden",
             "show_scripts",
             "use_json",
         ):

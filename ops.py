@@ -891,34 +891,19 @@ class SHELFMADE_OT_RunScript(Operator, io_utils.ImportHelper):
         Returns:
             set[OperatorReturnItems]
         """
-        # Check the script
-        script_path = Path(self.filepath)
-        if not script_path.exists():
-            print(f"Script file {self.filepath} not found")
-            return {"CANCELLED"}
+        if TYPE_CHECKING:
+            script: shelf.Script
+            shelf: shelf.Shelf
 
-        # Exception store
-        exception = None
+        # Run the script from filepath...
+        if self.filepath:
+            utils.run_script(self.filepath, context)
 
-        # Run script
-        text = utils.open_script_file(filepath=script_path)
-        with context.temp_override(edit_text=text):
-            try:
-                bpy.ops.text.run_script()
-
-            # If the script causes an exception, store it for later
-            except Exception as e:
-                exception = e
-
-        # Remove script
-        try:
-            bpy.data.texts.remove(text)
-        except ReferenceError:
-            print("Could not delete script, already removed")
-
-        # Raise potential exception after cleanup
-        if exception:
-            raise exception
+        # ... or use provided shelf index and script name
+        else:
+            shelf = preferences.Preferences.this().shelves[self.index]
+            script = shelf.scripts[self.script]
+            script.run(context)
 
         return {"FINISHED"}
 
