@@ -146,7 +146,12 @@ class SHELFMADE_OT_CleanShelves(Operator):
         Returns:
             set[OperatorReturnItems]
         """
-        return context.window_manager.invoke_confirm(self, event)
+        return context.window_manager.invoke_confirm(
+            self,
+            event,
+            message="This will irreversibly delete all data for shelves and scripts "
+            "that are not found on disk. Continue?",
+        )
 
     def execute(self, context: Context) -> set[OperatorReturnItems]:
         """

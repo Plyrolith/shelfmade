@@ -171,6 +171,9 @@ class Preferences(AddonPreferences):
                 icon="X",
             ).index = i
 
+        box_shelves.separator()
+        col_shelves.operator("shelfmade.clean_shelves", icon="TRASH")
+
     def initialize_shelves(self):
         """
         Scan the script directories and initiate a script object for each script found.
