@@ -42,10 +42,13 @@ class Preferences(AddonPreferences):
         for i_sh, shelf in reversed(list(enumerate(self.shelves))):
             if not shelf.is_available:
                 self.shelves.remove(i_sh)
+                continue
 
             for i_sc, script in reversed(list(enumerate(shelf.scripts))):
                 if not script.is_available:
                     shelf.scripts.remove(i_sc)
+
+            shelf.save()
 
     def create_env_shelves(self):
         """
