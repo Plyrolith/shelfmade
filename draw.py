@@ -483,7 +483,7 @@ def shelf_scripts(panel: Panel | Operator, context: Context):
             ).index = sh_i
         else:
             if shelf.show_hidden:
-                row_menu.label(text="", icon="GHOST_ENABLED")
+                row_menu.prop(shelf, "show_hidden", text="", icon="GHOST_ENABLED")
             row_menu.operator_menu_enum(
                 "shelfmade.call_shelf_menu",
                 "mode",
