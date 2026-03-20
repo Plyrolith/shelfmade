@@ -426,12 +426,6 @@ class Shelf(PropertyGroup):
             existing_script: Script
             script: Script | None
 
-        # Hide hidden
-        self.show_hidden = False
-
-        # Disable all scripts
-        [setattr(script, "is_available", False) for script in self.scripts]
-
         # Check directory
         if not self.exists():
             self.is_available = False
@@ -450,6 +444,12 @@ class Shelf(PropertyGroup):
         # Lock if user is not in authors list
         if not self.is_locked:
             self.is_locked = not self.is_unlockable()
+
+        # Hide hidden
+        self.show_hidden = False
+
+        # Disable all scripts
+        [setattr(script, "is_available", False) for script in self.scripts]
 
         # Iterate directory and find python scripts
         has_new_scripts = False
