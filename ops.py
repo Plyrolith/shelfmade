@@ -452,21 +452,20 @@ class SHELFMADE_OT_MoveScript(Operator):
             set[OperatorReturnItems]
         """
         if TYPE_CHECKING:
+            script: shelf.Script
             shelf: shelf.Shelf
 
         shelf = preferences.Preferences.this().shelves[self.index]
         scripts = shelf.scripts
-        current_index = scripts.find(self.script)
+        script = scripts[self.script]
+        new_index = script.get_next_index(self.direction)
 
-        # Get new index
-        new_index = current_index - 1 if self.direction == "UP" else current_index + 1
-
-        # Don't move past first or last position
-        if current_index < 0 or current_index >= len(scripts):
+        # Don't move if no new position is available
+        if new_index is None:
             return {"CANCELLED"}
 
         # Move
-        scripts.move(current_index, new_index)
+        scripts.move(script.get_index(), new_index)
 
         # Save
         shelf.save(context)

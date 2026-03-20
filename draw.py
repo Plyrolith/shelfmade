@@ -251,9 +251,19 @@ def script_options(
     row_name.prop(script, "display_name", text="")
 
     layout.separator()
-    box_display = layout.box()
+    col_display = layout.column(align=True)
+
+    # Hide
+    col_display.prop(
+        script,
+        "is_hidden",
+        text="Hide",
+        icon="GHOST_DISABLED" if script.is_hidden else "GHOST_ENABLED",
+        toggle=True,
+    )
 
     # Attach
+    box_display = col_display.box()
     row_attach = box_display.row()
     row_attach.alignment = "CENTER"
     row_attach.prop(script, "use_attach", text="Attach to Previous Row")
@@ -278,7 +288,8 @@ def script_options(
     layout.separator()
 
     # Move
-    op_up = layout.operator(
+    row_up = layout.row()
+    op_up = row_up.operator(
         "shelfmade.move_script",
         text="Move Up",
         icon="TRIA_UP",
@@ -286,7 +297,8 @@ def script_options(
     op_up.index = index
     op_up.script = script.name
     op_up.direction = "UP"
-    op_down = layout.operator(
+    row_down = layout.row()
+    op_down = row_down.operator(
         "shelfmade.move_script",
         text="Move Down",
         icon="TRIA_DOWN",
@@ -294,6 +306,15 @@ def script_options(
     op_down.index = index
     op_down.script = script.name
     op_down.direction = "DOWN"
+
+    # Inactive if hidden
+    if script.is_hidden:
+        box_display.active = row_up.enabled = row_down.enabled = False
+    else:
+        if script.get_next_index("UP") is None:
+            row_up.enabled = False
+        if script.get_next_index("DOWN") is None:
+            row_down.enabled = False
 
 
 def shelf_visibility(panel: Panel | Operator, context: Context, index: int):
@@ -310,6 +331,16 @@ def shelf_visibility(panel: Panel | Operator, context: Context, index: int):
 
     shelf = preferences.Preferences.this().shelves[index]
     layout = panel.layout
+
+    # Show hidden
+    layout.row().prop(
+        shelf,
+        "show_hidden",
+        icon="GHOST_ENABLED" if shelf.show_hidden else "GHOST_DISABLED",
+        toggle=True,
+    )
+
+    layout.row().separator(type="LINE")
 
     # Area type toggles
     col_areas = layout.column()
@@ -363,67 +394,73 @@ def shelf_scripts(panel: Panel | Operator, context: Context):
             alignment="LEFT",
             icon=None if shelf.icon == "NONE" else shelf.icon,
         ):
-            # Don't draw if scripts are empty
-            scripts = [s for s in shelf.scripts if s.is_available]
-            if scripts:
-                # Draw script buttons
-                for sc_i, script in enumerate(scripts):
-                    # Create script row and set height
-                    if sc_i == 0 or not script.use_attach:
-                        # Separate from last row
-                        if sc_i == 0:
-                            col_shelf.separator()
-                        elif script.spacing != "ALIGN":
-                            col_shelf.separator(
-                                factor=2 if script.spacing in {"SPACE", "LINE"} else 1,
-                                type="LINE" if script.spacing == "LINE" else "SPACE",
-                            )
+            # Iterate scripts
+            is_first_script = True
+            for script in shelf.scripts:
+                # Skip if unavailable or hidden
+                if not script.is_available:
+                    continue
+                if script.is_hidden and (shelf.is_locked or not shelf.show_hidden):
+                    continue
 
-                        # Create main UI row
-                        row_main = col_shelf.row(align=True)
-
-                    # Separate from last button in row
+                # Create script row and set height
+                if is_first_script or not script.use_attach:
+                    # Separate from last row
+                    if is_first_script:
+                        col_shelf.separator()
+                        is_first_script = False
                     elif script.spacing != "ALIGN":
-                        row_main.separator(  # type: ignore
+                        col_shelf.separator(
                             factor=2 if script.spacing in {"SPACE", "LINE"} else 1,
                             type="LINE" if script.spacing == "LINE" else "SPACE",
                         )
 
-                    # Script operator
-                    row_script = row_main.row(align=True)  # type: ignore
-                    row_script.scale_y = script.height
-                    row_op = row_script.row(align=True)
-                    row_op.operator_context = "EXEC_DEFAULT"
-                    row_op.alert = script.style in {
-                        "ALERT",
-                        "EMBOSS_ALERT",
-                    }
-                    row_op.emboss = (
-                        "NONE" if script.style in {"NONE", "ALERT"} else "NORMAL"
+                    # Create main UI row
+                    row_main = col_shelf.row(align=True)
+
+                # Separate from last button in row
+                elif script.spacing != "ALIGN":
+                    row_main.separator(  # type: ignore
+                        factor=2 if script.spacing in {"SPACE", "LINE"} else 1,
+                        type="LINE" if script.spacing == "LINE" else "SPACE",
                     )
-                    op_script = row_op.operator(
-                        "wm.run_script",
-                        text=script.display_name,
-                        icon=script.icon,
-                        depress=script.style == "DEPRESS",
+
+                # Script operator
+                row_script = row_main.row(align=True)  # type: ignore
+                row_script.scale_y = script.height
+                row_op = row_script.row(align=True)
+                row_op.operator_context = "EXEC_DEFAULT"
+                row_op.alert = script.style in {
+                    "ALERT",
+                    "EMBOSS_ALERT",
+                }
+                row_op.emboss = (
+                    "NONE" if script.style in {"NONE", "ALERT"} else "NORMAL"
+                )
+                row_op.active = not script.is_hidden
+                op_script = row_op.operator(
+                    "wm.run_script",
+                    text=script.display_name,
+                    icon=script.icon,
+                    depress=script.style == "DEPRESS",
+                )
+                op_script.filepath = script.get_path().as_posix()
+                op_script.index = sh_i
+                op_script.script = script.name
+
+                # Menu button
+                if not shelf.is_locked and prefs.show_menus:
+                    row_script.operator_context = "INVOKE_DEFAULT"
+                    op_script = row_script.operator(
+                        "shelfmade.show_script_options",
+                        text="",
+                        icon="PROP_ON" if script.is_focused else "DOWNARROW_HLT",
+                        emboss=False,
                     )
-                    op_script.filepath = script.get_path().as_posix()
                     op_script.index = sh_i
                     op_script.script = script.name
 
-                    # Menu button
-                    if not shelf.is_locked and prefs.show_menus:
-                        row_script.operator_context = "INVOKE_DEFAULT"
-                        op_script = row_script.operator(
-                            "shelfmade.show_script_options",
-                            text="",
-                            icon="PROP_ON" if script.is_focused else "DOWNARROW_HLT",
-                            emboss=False,
-                        )
-                        op_script.index = sh_i
-                        op_script.script = script.name
-
-            else:
+            if is_first_script:
                 row_noscripts = col_shelf.row()
                 row_noscripts.alignment = "CENTER"
                 row_noscripts.label(text="No Scripts Found", icon="GHOST_DISABLED")
@@ -432,7 +469,10 @@ def shelf_scripts(panel: Panel | Operator, context: Context):
         row_menu = row_title.row()
         row_menu.alignment = "RIGHT"
         if not prefs.show_menus:
-            row_menu.label(text="", icon="BLANK1")
+            row_menu.label(
+                text="",
+                icon="GHOST_ENABLED" if shelf.show_hidden else "BLANK1",
+            )
         elif shelf.is_locked:
             row_menu.operator_context = "INVOKE_DEFAULT"
             row_menu.operator(
@@ -442,6 +482,8 @@ def shelf_scripts(panel: Panel | Operator, context: Context):
                 emboss=False,
             ).index = sh_i
         else:
+            if shelf.show_hidden:
+                row_menu.label(text="", icon="GHOST_ENABLED")
             row_menu.operator_menu_enum(
                 "shelfmade.call_shelf_menu",
                 "mode",

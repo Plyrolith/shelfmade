@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from os import PathLike
+    from typing import Literal
+
     from bpy.types import Context
 
 import json
@@ -96,6 +98,11 @@ class Script(PropertyGroup):
         name="Is Focused",
         description="This script is focused for editing by an operator",
     )
+    is_hidden: BoolProperty(
+        name="Hidden",
+        description="Whether this script is hidden from its shelf's list",
+        update=save,
+    )
     name: StringProperty(
         name="File Name",
         description="File name of the Python script within the shelf directory",
@@ -130,6 +137,55 @@ class Script(PropertyGroup):
         description="Attach this script's button to the previous row",
         update=save,
     )
+
+    def get_index(self) -> int:
+        """
+        Return this script's postition index within its shelf.
+
+        Returns:
+            int: Position index
+        """
+        return self.get_shelf().scripts.find(self.name)
+
+    def get_next_index(self, direction: Literal["DOWN", "UP"] = "UP") -> int | None:
+        """
+        Based on this script's shelf settings, find the next available position index
+        for moving it into given direction.
+
+        Args:
+            direction (str): Direction to move the script to
+              - DOWN
+              - UP
+
+        Returns:
+            int | None: New available position index, if script can be moved
+        """
+        if TYPE_CHECKING:
+            script: Script
+
+        shelf = self.get_shelf()
+        c_i = self.get_index()
+
+        # Collect all available scripts in given direction
+        if direction == "UP":
+            scripts = shelf.scripts[:c_i]
+        else:
+            n_i = c_i + 1
+            scripts = reversed(shelf.scripts[n_i:])
+
+        # Find the next available script based on settings and return its index
+        for i, script in enumerate(scripts, 1):
+            # Skip hidden scripts
+            if not script.is_available or (
+                script.is_hidden and (shelf.is_locked or not shelf.show_hidden)
+            ):
+                continue
+
+            # Return new index
+            if direction == "UP":
+                return c_i - i
+            else:
+                return c_i + i
 
     def get_path(self) -> Path:
         """
@@ -303,7 +359,6 @@ class Shelf(PropertyGroup):
         description="Whether to show this shelf in the spreadsheet",
         update=save,
     )
-
     icon: EnumProperty(
         items=utils.enum_icons,  # type: ignore
         name="Icon",
@@ -332,6 +387,10 @@ class Shelf(PropertyGroup):
         type=Script,
         name="Scripts",
         description="This shelf's script objects",
+    )
+    show_hidden: BoolProperty(
+        name="Show Hidden Scripts",
+        description="Include hidden scripts in the UI list",
     )
     show_scripts: BoolProperty(
         name="Show Scripts",
@@ -366,6 +425,9 @@ class Shelf(PropertyGroup):
         if TYPE_CHECKING:
             existing_script: Script
             script: Script | None
+
+        # Hide hidden
+        self.show_hidden = False
 
         # Disable all scripts
         [setattr(script, "is_available", False) for script in self.scripts]
